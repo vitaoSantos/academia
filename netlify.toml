@@ -1,0 +1,39 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Contas, empresas, profissionais, fichas, treinos, aulas, agenda, rede, conversas e admin
+# (Netlify Functions + Netlify Blobs).
+# Variáveis: ADMIN_PASSWORD (admin em /admin), SESSION_SECRET (assina o login) e, opcional,
+# ADMIN_TOTP (segundo fator do admin, em base32).
+[functions]
+  directory = "netlify/functions"
+
+# O site é um app de uma página só: /forca-total, /painel, /rede... são decididos no navegador
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/painel/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/pro/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
