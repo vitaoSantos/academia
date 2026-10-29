@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react'
 import { urlMidia } from '../../lib/api'
 import { carregarFonte, carregarFontePropria } from '../../lib/fontes'
 import { iniciais, nomeCurto } from '../../shared/texto'
@@ -18,12 +18,19 @@ export function useMarca(visual?: Partial<Visual> | null): TemaFinal {
   return tema
 }
 
+// O tema de quem está em volta (dentro de <ComMarca>), para o que não lê CSS: o boneco 3D, os gráficos
+const TemaEmVolta = createContext<TemaFinal | null>(null)
+const PADRAO = temaDe(undefined)
+export const useTemaEmVolta = () => useContext(TemaEmVolta) ?? PADRAO
+
 export function ComMarca({ visual, className = '', children, estilo }: { visual?: Partial<Visual> | null; className?: string; children: ReactNode; estilo?: CSSProperties }) {
   const tema = useMarca(visual)
   return (
-    <div className={`com-marca ${className}`} data-esquema={tema.escuro ? 'escuro' : 'claro'} style={{ ...(variaveisDoTema(tema) as CSSProperties), ...estilo }}>
-      {children}
-    </div>
+    <TemaEmVolta.Provider value={tema}>
+      <div className={`com-marca ${className}`} data-esquema={tema.escuro ? 'escuro' : 'claro'} style={{ ...(variaveisDoTema(tema) as CSSProperties), ...estilo }}>
+        {children}
+      </div>
+    </TemaEmVolta.Provider>
   )
 }
 

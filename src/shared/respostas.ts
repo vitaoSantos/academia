@@ -182,6 +182,15 @@ export type InicioDoAluno = {
   proximaDivisao?: { ficha: string; divisao: string; nome: string; foco?: string }
 }
 
+// A trajetória do aluno (seção 6 do estudo): onde treinou, com quem, e as avaliações que deu
+export type HistoricoDoAluno = {
+  lugares: { empresa: string; unidade: string; nome: string; vezes: number; primeira: string; ultima: string }[]
+  academias: { slug: string; nome: string; visual: Visual; status: Vinculo['status']; desde: string; ate?: string; unidadeNome?: string }[]
+  profissionais: { id: string; nome: string; slug?: string; foto?: string; personal: boolean; fichas: number; desde: string; ultima: string; onde: string[] }[]
+  avaliacoes: { tipo: 'empresa' | 'profissional'; id: string; nome: string; link?: string; estrelas: number; motivos: string[]; texto?: string; em: string; resposta?: { texto: string; em: string } }[]
+  paraAvaliar: { tipo: 'empresa' | 'profissional'; id: string; nome: string; link?: string }[]
+}
+
 export type ConvitePublico = { codigo: string; tipo: 'aluno' | 'professor'; nome?: string; de: { tipo: 'empresa' | 'profissional'; id: string; nome: string; visual: Visual }; expirado: boolean; usado: boolean }
 
 // ---------- Fichas ----------

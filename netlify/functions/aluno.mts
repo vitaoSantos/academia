@@ -1,5 +1,5 @@
 import { proximaDivisao } from '../../src/shared/ficha.ts'
-import type { InicioDoAluno, VinculoComMarca } from '../../src/shared/respostas.ts'
+import type { HistoricoDoAluno, InicioDoAluno, VinculoComMarca } from '../../src/shared/respostas.ts'
 import { agoraNoFuso, dataDe, hoje, inicioDaSemana } from '../../src/shared/tempo.ts'
 import { sequencia } from '../../src/shared/treino.ts'
 import type { Vinculo } from '../../src/shared/tipos.ts'
@@ -11,13 +11,14 @@ import { fichasDoAluno, lerFicha } from '../lib/fichas.ts'
 import { lerReservasDoAluno } from '../lib/grade.ts'
 import { falhar, json, lerCorpo, limitar, rotas } from '../lib/http.ts'
 import { lerProfissional } from '../lib/profissionais.ts'
-import { garantirDemonstracao } from '../lib/semente.ts'
+import { CONTAS_DEMO, garantirDemonstracao } from '../lib/semente.ts'
 import { proximasDoAluno } from '../lib/sessoes.ts'
-import { treinosDe } from '../lib/treinos.ts'
+import { lerLugares, treinosDe } from '../lib/treinos.ts'
+import { lerAvaliacoes, podeAvaliar } from '../lib/avaliacoes.ts'
 import { aceitarConvite, convitePublico, desvincular, lerConvite, lerVinculos, vincular, vinculoAtivo } from '../lib/vinculos.ts'
 
 // O início do aluno e os vínculos.
-// GET ?inicio · ?convite=CODIGO (o convite visto por quem recebeu) · ?vinculos
+// GET ?inicio · ?convite=CODIGO (o convite visto por quem recebeu) · ?vinculos · ?historico (a trajetória)
 // POST { acao }: convite (aceitar), pedir (ser aluno da academia ou do personal), sair
 
 async function comMarca(vinculos: Vinculo[]): Promise<VinculoComMarca[]> {
@@ -64,6 +65,59 @@ async function inicio(conta: ContaGuardada): Promise<InicioDoAluno> {
   }
 }
 
+// A trajetória: os lugares (das pegadas dos treinos), as academias (dos vínculos), os professores
+// (das fichas e do personal) e as avaliações que a pessoa deu, com quem ainda dá para avaliar
+async function historico(conta: ContaGuardada): Promise<HistoricoDoAluno> {
+  const [vinculos, fichas, lugares] = await Promise.all([lerVinculos(conta.id), fichasDoAluno(conta.id), lerLugares(conta.id)])
+  const academias: HistoricoDoAluno['academias'] = []
+  for (const v of vinculos.filter((x) => x.tipo === 'empresa')) {
+    const e = await lerEmpresa(v.id)
+    if (e) academias.push({ slug: e.slug, nome: e.nome, visual: e.visual, status: v.status, desde: v.desde, ...(v.ate ? { ate: v.ate } : {}), ...(v.unidade ? { unidadeNome: nomeDaUnidade(e, v.unidade) } : {}) })
+  }
+  // os professores: quem montou ficha (fora a própria) e o personal com vínculo
+  const pros = new Map<string, { fichas: number; desde: string; ultima: string; onde: Set<string> }>()
+  for (const f of fichas.filter((x) => x.contexto.tipo !== 'propria' && x.status !== 'rascunho')) {
+    const p = pros.get(f.autor) ?? { fichas: 0, desde: f.inicio, ultima: f.inicio, onde: new Set<string>() }
+    p.fichas++
+    if (f.inicio < p.desde) p.desde = f.inicio
+    if (f.inicio > p.ultima) p.ultima = f.inicio
+    if (f.contexto.tipo === 'empresa') p.onde.add(academias.find((a) => a.slug === (f.contexto as { id: string }).id)?.nome ?? f.contexto.id)
+    else p.onde.add('Personal')
+    pros.set(f.autor, p)
+  }
+  for (const v of vinculos.filter((x) => x.tipo === 'profissional')) {
+    const dia = v.desde.slice(0, 10)
+    const p = pros.get(v.id) ?? { fichas: 0, desde: dia, ultima: dia, onde: new Set<string>() }
+    p.onde.add('Personal')
+    if (dia < p.desde) p.desde = dia
+    pros.set(v.id, p)
+  }
+  const profissionais: HistoricoDoAluno['profissionais'] = []
+  for (const [id, p] of pros) {
+    const pro = await lerProfissional(id)
+    if (!pro) continue
+    profissionais.push({ id, nome: pro.nome, ...(pro.publico ? { slug: pro.slug } : {}), ...(pro.foto ? { foto: pro.foto } : {}), personal: pro.personal, fichas: p.fichas, desde: p.desde, ultima: p.ultima, onde: [...p.onde] })
+  }
+  profissionais.sort((a, b) => b.ultima.localeCompare(a.ultima))
+  // as avaliações dadas (e quem ainda dá para avaliar)
+  const alvos = [
+    ...profissionais.map((p) => ({ tipo: 'profissional' as const, id: p.id, nome: p.nome, link: p.slug ? `/${p.slug}` : undefined })),
+    ...[...new Set([...academias.map((a) => a.slug), ...lugares.map((l) => l.empresa)])].map((slug) => ({ tipo: 'empresa' as const, id: slug, nome: academias.find((a) => a.slug === slug)?.nome ?? lugares.find((l) => l.empresa === slug)?.nome.split(' · ')[0] ?? slug, link: `/${slug}` })),
+  ]
+  const avaliacoes: HistoricoDoAluno['avaliacoes'] = []
+  const paraAvaliar: HistoricoDoAluno['paraAvaliar'] = []
+  // quem experimenta vê as avaliações da Ana (a conta de visita é uma cópia dela)
+  const autor = conta.visita ? CONTAS_DEMO.aluna : conta.id
+  for (const a of alvos) {
+    const minha = (await lerAvaliacoes({ tipo: a.tipo, id: a.id })).find((x) => x.de === autor)
+    const base = { tipo: a.tipo, id: a.id, nome: a.nome, ...(a.link ? { link: a.link } : {}) }
+    if (minha) avaliacoes.push({ ...base, estrelas: minha.estrelas, motivos: minha.motivos, ...(minha.texto ? { texto: minha.texto } : {}), em: minha.em, ...(minha.resposta ? { resposta: minha.resposta } : {}) })
+    else if (await podeAvaliar(conta, { tipo: a.tipo, id: a.id })) paraAvaliar.push(base)
+  }
+  avaliacoes.sort((a, b) => b.em.localeCompare(a.em))
+  return { lugares: lugares.map((l) => ({ empresa: l.empresa, unidade: l.unidade, nome: l.nome, vezes: l.vezes, primeira: l.primeira, ultima: l.ultima })), academias, profissionais, avaliacoes, paraAvaliar }
+}
+
 // "Sou aluno daqui" (a academia aprova) ou "Quero treinar com você" (o personal aprova)
 async function pedir(conta: ContaGuardada, corpo: Record<string, unknown>) {
   if (typeof corpo.empresa === 'string') {
@@ -99,6 +153,7 @@ export default rotas({
     await garantirDemonstracao()
     const conta = await exigirConta(req)
     if (u.has('vinculos')) return json({ vinculos: await comMarca(await lerVinculos(conta.id)) })
+    if (u.has('historico')) return json(await historico(conta))
     return json(await inicio(conta))
   },
   POST: async (req) => {

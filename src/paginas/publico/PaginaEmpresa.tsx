@@ -39,7 +39,10 @@ export default function PaginaEmpresa({ d, recarregar }: { d: Dados; recarregar:
   const [unidadeId, setUnidadeId] = useState(busca.get('unidade') && ativas.some((u) => u.id === busca.get('unidade')) ? busca.get('unidade')! : (d.vinculo?.unidade ?? ativas[0]?.id ?? ''))
   const unidade = ativas.find((u) => u.id === unidadeId) ?? ativas[0]
   const temGrade = e.grade.some((a) => a.ativa)
-  const [aba, setAba] = useState<Aba>(temGrade ? 'aulas' : 'unidades')
+  const [aba, setAba] = useState<Aba>(() => {
+    const pedida = busca.get('aba') as Aba | null
+    return pedida && ['aulas', 'unidades', 'modalidades', 'professores', 'avaliacoes'].includes(pedida) && (pedida !== 'aulas' || temGrade) ? pedida : temGrade ? 'aulas' : 'unidades'
+  })
   const [pedindo, setPedindo] = useState(false)
   const souAluno = d.vinculo?.status === 'ativo'
 

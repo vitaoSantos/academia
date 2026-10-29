@@ -1103,7 +1103,7 @@ export async function criarAlunoDeVisita(): Promise<ContaGuardada> {
     [CHAVES.desafiosDo(id), desafios],
     ...fichasCompletas.filter((f): f is Ficha => !!f).map<Doc>((f) => [CHAVES.ficha(novaFicha(f.id)), { ...f, id: novaFicha(f.id), aluno: id }]),
     ...anos.map<Doc>((a, i) => [CHAVES.treinosDo(id, a), treinosPorAno[i].map((t) => ({ ...t, id: `${t.id}v${sufixo}`.slice(0, 40), conta: id, ficha: t.ficha ? novaFicha(t.ficha) : undefined, post: undefined }))]),
-    [CHAVES.avisos(id), [{ id: 'av1', tipo: 'ficha', texto: 'Bem-vinda! Você está experimentando como a Ana, aluna da Força Total e do Rafael Moreira. O que você faz aqui só você vê.', link: '/inicio', em: new Date().toISOString() }]],
+    [CHAVES.avisos(id), [{ id: 'av1', tipo: 'ficha', texto: 'Bem-vinda! Você está experimentando como a Ana, aluna da Força Total e do Rafael Moreira. O que você faz aqui só você vê.', link: '/app', em: new Date().toISOString() }]],
   ]
   await emParalelo(docs, ([chave, valor]) => blobs().setJSON(chave, valor), 24)
   // entra nos desafios da Ana com os mesmos pontos (no ranking, só ela se vê)

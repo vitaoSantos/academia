@@ -20,6 +20,22 @@ const ComecarPersonal = lazy(() => import('./paginas/conta/ComecarPersonal'))
 const Pagina = lazy(() => import('./paginas/publico/Pagina'))
 const Perfil = lazy(() => import('./paginas/publico/Perfil'))
 const Convite = lazy(() => import('./paginas/publico/Convite'))
+const Exercicios = lazy(() => import('./paginas/Exercicios'))
+const Inicio = lazy(() => import('./paginas/aluno/Inicio'))
+const Fichas = lazy(() => import('./paginas/aluno/Fichas'))
+const Ficha = lazy(() => import('./paginas/aluno/Ficha'))
+const MinhaFicha = lazy(() => import('./paginas/aluno/MinhaFicha'))
+const Treinar = lazy(() => import('./paginas/aluno/Treinar'))
+const Historico = lazy(() => import('./paginas/aluno/Historico'))
+const Evolucao = lazy(() => import('./paginas/aluno/Evolucao'))
+const Medidas = lazy(() => import('./paginas/aluno/Medidas'))
+const Agenda = lazy(() => import('./paginas/aluno/Agenda'))
+const Aulas = lazy(() => import('./paginas/aluno/Aulas'))
+const Desafios = lazy(() => import('./paginas/aluno/Desafios'))
+const Desafio = lazy(() => import('./paginas/aluno/Desafio'))
+const Conta = lazy(() => import('./paginas/aluno/Conta'))
+const Avisos = lazy(() => import('./paginas/aluno/Avisos'))
+const Mais = lazy(() => import('./paginas/aluno/Mais'))
 
 function Carregando() {
   return (
@@ -31,10 +47,28 @@ function Carregando() {
 
 function Tela() {
   const { caminho } = useEndereco()
-  const [primeira, segunda] = caminho.split('/').filter(Boolean).map(decodeURIComponent)
+  const [primeira, segunda, terceira] = caminho.split('/').filter(Boolean).map(decodeURIComponent)
+
+  // o app do aluno
+  const aluno: Record<string, () => ReactNode> = {
+    app: () => <Inicio />,
+    treinar: () => <Treinar />,
+    historico: () => <Historico />,
+    evolucao: () => <Evolucao />,
+    medidas: () => <Medidas />,
+    agenda: () => <Agenda />,
+    aulas: () => <Aulas />,
+    conta: () => <Conta />,
+    avisos: () => <Avisos />,
+    mais: () => <Mais />,
+  }
 
   let tela: ReactNode
   if (caminho === '/') tela = <Landing />
+  else if (primeira && !segunda && aluno[primeira]) tela = aluno[primeira]()
+  else if (primeira === 'fichas') tela = !segunda ? <Fichas /> : segunda === 'nova' ? <MinhaFicha /> : terceira === 'editar' ? <MinhaFicha key={segunda} id={segunda} /> : <Ficha key={segunda} id={segunda} />
+  else if (primeira === 'desafios') tela = segunda ? <Desafio key={segunda} id={segunda} /> : <Desafios />
+  else if (primeira === 'exercicios') tela = <Exercicios key={segunda ?? ''} id={segunda} />
   else if (primeira === 'lab') tela = <Lab inicial={segunda} />
   else if (primeira === 'explorar') tela = <Explorar />
   else if (caminho === '/entrar') tela = <Entrar />

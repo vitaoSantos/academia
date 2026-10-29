@@ -3,6 +3,7 @@ import { PiArrowsClockwise, PiPause, PiPlay } from 'react-icons/pi'
 import { Link, useEndereco } from '../lib/rotas'
 import { CORES_DESTAQUE } from '../shared/temas'
 import { EQUIPAMENTOS, EXERCICIO, EXERCICIOS, GRUPOS, MUSCULOS, type Camera, type Grupo } from '../shared/exercicios'
+import { textoReps } from '../shared/ficha'
 
 const Boneco3D = lazy(() => import('../components/three/Boneco3D'))
 
@@ -182,7 +183,7 @@ export default function Lab({ inicial }: { inicial?: string }) {
             </p>
             <h2 className="titulo mt-2 text-3xl">{ex.nome}</h2>
             <p className="mt-2 text-sm text-suave">
-              {ex.series} séries de {ex.medida === 'tempo' ? `${ex.reps} s` : `${ex.reps} repetições`} · descanso de {ex.descanso} s
+              {ex.series} séries de {ex.medida === 'tempo' ? textoReps(ex.reps) : `${textoReps(ex.reps)} repetições`} · descanso de {ex.descanso} s
             </p>
             <div className="mt-4 flex flex-wrap gap-1.5">
               {ex.principais.map((m) => (

@@ -66,6 +66,7 @@ export async function responder(a: Alvo, de: string, textoBruto: unknown) {
     if (!l.some((x) => x.de === de)) falhar(404, 'Avaliação não encontrada.')
     return l.map((x) => (x.de === de ? { ...x, resposta: { texto, em: new Date().toISOString() } } : x))
   })
-  avisarSemFalhar(de, 'avaliacao', 'Responderam a sua avaliação.', a.tipo === 'profissional' ? `/p/${a.id}` : `/${a.id}`)
+  const pagina = a.tipo === 'profissional' ? (await lerProfissional(a.id))?.slug : a.id
+  avisarSemFalhar(de, 'avaliacao', 'Responderam a sua avaliação.', pagina ? `/${pagina}` : '/avisos')
   return lista
 }

@@ -161,9 +161,12 @@ export async function desafioComRanking(d: Desafio, quem: string | null) {
   return { ...resto, ranking: r, total: ids.length, participo: !!quem && visiveis.has(quem) }
 }
 
+// As contas de quem experimenta a demonstração só veem a si mesmas no ranking e na contagem
+const semOutrasVisitas = (d: Desafio, quem: string): Desafio => ({ ...d, participantes: Object.fromEntries(Object.entries(d.participantes).filter(([id]) => !id.startsWith('demovisita') || id === quem)) })
+
 export async function desafiosDe(conta: string) {
   const ids = await lerJSON<string[]>(CHAVES.desafiosDo(conta), [])
-  const lista = await lerVarios<Desafio>(ids.slice(0, 40).map((id) => CHAVES.desafio(id)))
+  const lista = (await lerVarios<Desafio>(ids.slice(0, 40).map((id) => CHAVES.desafio(id)))).map((d) => semOutrasVisitas(d, conta))
   return lista.map((d) => {
     const r = ranking(d)
     const pos = r.findIndex((p) => p.id === conta)

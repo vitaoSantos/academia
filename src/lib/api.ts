@@ -8,6 +8,7 @@ import type {
   Feed,
   FichaCompleta,
   Historico,
+  HistoricoDoAluno,
   InicioDoAluno,
   LinhaConversa,
   ConversaVista,
@@ -90,6 +91,7 @@ export type DadosCadastro = { nome: string; login: string; senha: string; cidade
 
 export const sessao = {
   ler: () => chamar<RespostaSessao>('sessao'),
+  bloqueados: () => chamar<{ pessoas: PessoaResumo[] }>('sessao', { busca: { bloqueados: true } }),
   entrar: (login: string, senha: string) => post<RespostaSessao>('sessao', 'entrar', { login, senha }),
   cadastro: (d: DadosCadastro) => post<RespostaSessao>('sessao', 'cadastro', d),
   sair: () => post<RespostaSessao>('sessao', 'sair'),
@@ -167,6 +169,7 @@ export const paginas = {
 export const aluno = {
   inicio: () => chamar<InicioDoAluno>('aluno', { busca: { inicio: true } }),
   vinculos: () => chamar<{ vinculos: VinculoComMarca[] }>('aluno', { busca: { vinculos: true } }),
+  historico: () => chamar<HistoricoDoAluno>('aluno', { busca: { historico: true } }),
   convite: (codigo: string) => chamar<ConvitePublico>('aluno', { busca: { convite: codigo } }),
   aceitarConvite: (codigo: string) => post<{ ok: true; de: ConvitePublico['de']; tipo: 'aluno' | 'professor' }>('aluno', 'convite', { codigo }),
   pedir: (alvo: { empresa: string; unidade?: string } | { profissional: string }) => post<{ vinculos: VinculoComMarca[] }>('aluno', 'pedir', alvo),

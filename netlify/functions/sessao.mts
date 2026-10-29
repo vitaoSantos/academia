@@ -9,7 +9,7 @@ import { corValida } from '../../src/shared/cores.ts'
 import type { Cidade, Empresa, PresetVisual, Profissional, TipoEmpresa, Unidade, Visual } from '../../src/shared/tipos.ts'
 import { contaDaRequisicao, cookieDeSaida, cookieDeSessao, exigirConta, protegerSenha, publico, senhaConfere, type ContaGuardada } from '../lib/auth.ts'
 import { lerAvisos } from '../lib/avisos.ts'
-import { apagarConta, contaPorLogin, criarConta, dadosDeCadastro, lerConta, mudarConta, SENHA_MINIMA, trocarUsuario } from '../lib/contas.ts'
+import { apagarConta, contaPorLogin, criarConta, dadosDeCadastro, lerConta, mudarConta, resumos, SENHA_MINIMA, trocarUsuario } from '../lib/contas.ts'
 import { listaDe, naoLida } from '../lib/conversas.ts'
 import { indexarEmpresa, lerEmpresa } from '../lib/empresas.ts'
 import { falhar, json, lerCorpo, limitar, quem, rotas, type Corpo } from '../lib/http.ts'
@@ -24,7 +24,7 @@ import { atualizar, blobs, CHAVES, criarSeNovo, novoId } from '../lib/store.ts'
 import { anotarVisita } from '../lib/visitas.ts'
 
 // Login, cadastro e a conta.
-// GET: quem está logado (com o perfil profissional, as empresas e os avisos não lidos).
+// GET: quem está logado (com o perfil profissional, as empresas e os avisos não lidos) · ?bloqueados.
 // POST { acao }: entrar, cadastro, sair, demo, perfil, privacidade, local, senha, consentimento,
 //      principal, bloquear, desbloquear, mais, apagar, profissional (criar ou editar o perfil
 //      profissional) e empresa (criar a academia ou a rede).
@@ -346,7 +346,15 @@ async function criarEmpresa(corpo: Corpo, req: Request, context: Context) {
 }
 
 export default rotas({
-  GET: async (req) => json(await resposta(await contaDaRequisicao(req))),
+  GET: async (req) => {
+    const conta = await contaDaRequisicao(req)
+    // ?bloqueados: quem a pessoa bloqueou (para desbloquear na conta)
+    if (conta && new URL(req.url).searchParams.has('bloqueados')) {
+      const pessoas = await resumos(conta.bloqueados ?? [])
+      return json({ pessoas: (conta.bloqueados ?? []).map((id) => pessoas.get(id)).filter(Boolean) })
+    }
+    return json(await resposta(conta))
+  },
   POST: async (req, context) => {
     const corpo = await lerCorpo(req)
     switch (corpo.acao) {

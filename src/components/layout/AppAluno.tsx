@@ -2,9 +2,10 @@ import { useEffect, type ReactNode } from 'react'
 import { PiBarbellBold, PiCaretLeft, PiClipboardText, PiDotsThreeOutline, PiHouse, PiUsersThree } from 'react-icons/pi'
 import { useMarcaNoDocumento } from '../../hooks/useMarcaNoDocumento'
 import { aluno } from '../../lib/api'
-import { useDados } from '../../lib/dados'
+import { esquecer, useDados } from '../../lib/dados'
 import { Link, navegar, useEndereco } from '../../lib/rotas'
 import { useSessao } from '../../lib/sessao'
+import { enviarPendentes, pendentes } from '../../lib/treinoLocal'
 import type { VinculoComMarca } from '../../shared/respostas'
 import { temaDe } from '../../shared/temas'
 import type { MarcaPrincipal } from '../../shared/tipos'
@@ -58,6 +59,16 @@ export function AppAluno({ children, titulo, voltar, largo = false, semNav = fal
   useEffect(() => {
     if (!s.carregando && !s.usuario) navegar(`/entrar?volta=${encodeURIComponent(location.pathname + location.search)}`, { substituir: true })
   }, [s.carregando, s.usuario])
+
+  // o treino que terminou sem internet sobe quando a conexão volta
+  const conta = s.usuario?.id
+  useEffect(() => {
+    if (!conta) return
+    const enviar = () => void enviarPendentes(conta).then((n) => n > 0 && esquecer('inicio:'))
+    if (pendentes(conta).length) enviar()
+    window.addEventListener('online', enviar)
+    return () => window.removeEventListener('online', enviar)
+  }, [conta])
 
   const ativo = (para: string) => (para === '/app' ? caminho === '/app' : caminho.startsWith(para)) || (para === '/mais' && MAIS.some((m) => caminho.startsWith(m.para)))
 

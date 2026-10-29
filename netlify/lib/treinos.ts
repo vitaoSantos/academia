@@ -40,8 +40,9 @@ export async function registrarTreino(conta: ContaGuardada, corpo: Corpo): Promi
   const inicio = typeof corpo.inicio === 'string' && !Number.isNaN(Date.parse(corpo.inicio)) ? new Date(corpo.inicio).toISOString() : ''
   const fim = typeof corpo.fim === 'string' && !Number.isNaN(Date.parse(corpo.fim)) ? new Date(corpo.fim).toISOString() : new Date().toISOString()
   if (!inicio) falhar(400, 'O treino precisa da hora de início.')
-  const duracaoMin = Math.round((Date.parse(fim) - Date.parse(inicio)) / 60_000)
-  if (duracaoMin < 1) falhar(400, 'O treino terminou antes de começar.')
+  if (Date.parse(fim) <= Date.parse(inicio)) falhar(400, 'O fim do treino está antes do começo.')
+  if (Date.parse(fim) - Date.parse(inicio) < 60_000) falhar(400, 'O treino precisa de pelo menos 1 minuto para ser guardado.')
+  const duracaoMin = Math.max(1, Math.round((Date.parse(fim) - Date.parse(inicio)) / 60_000))
   if (duracaoMin > 6 * 60) falhar(400, 'Treino longo demais (mais de 6 horas).')
   if (Date.parse(fim) > Date.now() + 5 * 60_000) falhar(400, 'O fim do treino está no futuro.')
   if (Date.now() - Date.parse(inicio) > 7 * 86_400_000) falhar(400, 'Só dá para registrar treinos da última semana.')

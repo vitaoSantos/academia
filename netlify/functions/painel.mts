@@ -365,7 +365,8 @@ export default rotas({
           texto = textoFaixa(faixa, pedida.graus)
           return { ...a, faixas: { ...a.faixas, [modalidade.id]: [...historico, { faixa: faixa!.id, graus: Math.min(pedida.graus, faixa!.graus ?? 0), desde: new Date().toISOString(), por: conta.nome }] } }
         })
-        if (texto) avisarSemFalhar(id, 'graduacao', `Parabéns! ${texto} de ${nomeModalidade(modalidade.id).toLowerCase()} na ${empresa.nome} 🥋`, '/perfil')
+        const graduado = texto ? await lerConta(id) : null
+        if (graduado) avisarSemFalhar(id, 'graduacao', `Parabéns! ${texto} de ${nomeModalidade(modalidade.id).toLowerCase()} na ${empresa.nome} 🥋`, `/u/${graduado.usuario}`)
         return json({ alunos: await lerAlunos({ tipo: 'empresa', id: slug }) })
       }
       default:

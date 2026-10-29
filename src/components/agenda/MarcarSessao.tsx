@@ -64,6 +64,8 @@ export function MarcarSessao({ pro, aoMarcar }: { pro: { id: string; nome: strin
           <Erro mensagem={mensagemDeErro(livres.erro)} aoTentar={livres.recarregar} />
         ) : livres.dados && !livres.dados.agenda.ativa ? (
           <p className="text-sm text-suave">A agenda está fechada agora. Combine pelo chat.</p>
+        ) : livres.dados && !livres.dados.agenda.alunoMarca ? (
+          <p className="text-sm text-suave">{pro.nome.split(' ')[0]} marca os horários com você. Combine pelo chat.</p>
         ) : livres.dados && livres.dados.livres.length === 0 ? (
           <p className="text-sm text-suave">Sem horários livres em {textoData(data)}. Tente outro dia.</p>
         ) : livres.dados ? (
