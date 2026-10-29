@@ -1,0 +1,11 @@
+{
+  "name": "Turma",
+  "short_name": "Turma",
+  "description": "Sua academia, seu personal e a sua turma num app só.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0f12",
+  "theme_color": "#0e0f12",
+  "lang": "pt-BR",
+  "icons": [{ "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

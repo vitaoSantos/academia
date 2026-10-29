@@ -1,0 +1,399 @@
+@import "tailwindcss";
+@import "@fontsource-variable/big-shoulders-display";
+@import "@fontsource-variable/manrope/wght.css";
+@import "lenis/dist/lenis.css";
+
+/* Identidade da Turma (seções 1 e 18 do estudo): a sala de musculação. O grafite do piso e dos
+   aparelhos e o amarelo da anilha; o título condensado e forte (Big Shoulders), o texto em Manrope.
+   O app é escuro por padrão; o tema claro troca as mesmas variáveis. As academias e os personais
+   entram com a marca deles por cima (--m-*: o estilo, a cor, a fonte e os cantos que escolheram). */
+
+:root {
+  --fundo: #0e0f12;
+  --sup: #16171c;
+  --sup-2: #1e2026;
+  --sup-3: #2a2c34;
+  --linha: rgb(255 255 255 / 0.08);
+  --linha-2: rgb(255 255 255 / 0.16);
+  --texto: #f4f2ec;
+  --suave: #a9aab2;
+  --fraco: #8d8e97;
+  --anilha: #f5c518;
+  --anilha-2: #ffd43b;
+  --anilha-texto: #17150b;
+  --anilha-legivel: #f5c518; /* o amarelo como texto (no claro, escurece para ler) */
+  --anilha-suave: rgb(245 197 24 / 0.14);
+  --ok: #3ecf8e;
+  --alerta: #ffb547;
+  --perigo: #ff5d6e;
+  --perigo-fundo: #cf3448;
+  --info: #6cb8ff;
+  --vidro: rgb(22 23 28 / 0.86);
+  --sombra: 0 24px 60px -24px rgb(0 0 0 / 0.75);
+  /* as séries dos gráficos (validadas nos dois temas) */
+  --s1: #f5c518;
+  --s2: #3e9bff;
+  --s3: #3ecf8e;
+  --s4: #ff6b6b;
+  /* a marca (a página e o app de cada academia e personal trocam estas) */
+  --m-fundo: var(--fundo);
+  --m-sup: var(--sup);
+  --m-sup-2: var(--sup-2);
+  --m-texto: var(--texto);
+  --m-suave: var(--suave);
+  --m-linha: var(--linha);
+  --m-destaque: var(--anilha);
+  --m-destaque-texto: var(--anilha-texto);
+  --m-destaque-legivel: var(--anilha-legivel);
+  --m-destaque-suave: var(--anilha-suave);
+  --m-detalhe: #e5484d;
+  --m-fonte: "Big Shoulders Display Variable", "Arial Narrow", sans-serif;
+  --m-fonte-peso: 800;
+  --m-fonte-caixa: uppercase;
+  --m-fonte-espaco: 0.01em;
+  --m-raio: 10px;
+  --m-raio-botao: 10px;
+  color-scheme: dark;
+}
+
+[data-tema="claro"] {
+  --fundo: #f3f2ee;
+  --sup: #ffffff;
+  --sup-2: #f7f6f2;
+  --sup-3: #e6e4de;
+  --linha: rgb(18 19 23 / 0.09);
+  --linha-2: rgb(18 19 23 / 0.18);
+  --texto: #121317;
+  --suave: #4b4d55;
+  --fraco: #5f616a;
+  --anilha-legivel: #7a5c00;
+  --anilha-suave: rgb(245 197 24 / 0.2);
+  --ok: #12723f;
+  --alerta: #8a5300;
+  --perigo: #c7283d;
+  --perigo-fundo: #c7283d;
+  --info: #1f5db0;
+  --vidro: rgb(255 255 255 / 0.9);
+  --sombra: 0 24px 60px -28px rgb(18 19 23 / 0.3);
+  --s1: #c99a00;
+  --s2: #1f6fd1;
+  --s3: #12925a;
+  --s4: #d63c3c;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-sup: var(--sup);
+  --color-sup-2: var(--sup-2);
+  --color-sup-3: var(--sup-3);
+  --color-linha: var(--linha);
+  --color-linha-2: var(--linha-2);
+  --color-texto: var(--texto);
+  --color-suave: var(--suave);
+  --color-fraco: var(--fraco);
+  --color-anilha: var(--anilha);
+  --color-anilha-2: var(--anilha-2);
+  --color-anilha-texto: var(--anilha-texto);
+  --color-anilha-legivel: var(--anilha-legivel);
+  --color-anilha-suave: var(--anilha-suave);
+  --color-ok: var(--ok);
+  --color-alerta: var(--alerta);
+  --color-perigo: var(--perigo);
+  --color-perigo-fundo: var(--perigo-fundo);
+  --color-info: var(--info);
+  --color-vidro: var(--vidro);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-s3: var(--s3);
+  --color-s4: var(--s4);
+  --color-m-fundo: var(--m-fundo);
+  --color-m-sup: var(--m-sup);
+  --color-m-sup-2: var(--m-sup-2);
+  --color-m-texto: var(--m-texto);
+  --color-m-suave: var(--m-suave);
+  --color-m-linha: var(--m-linha);
+  --color-m: var(--m-destaque);
+  --color-m-texto-destaque: var(--m-destaque-texto);
+  --color-m-legivel: var(--m-destaque-legivel);
+  --color-m-suave-destaque: var(--m-destaque-suave);
+  --color-m-detalhe: var(--m-detalhe);
+}
+
+@theme {
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-titulo: "Big Shoulders Display Variable", "Arial Narrow", sans-serif;
+
+  --ease-suave: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-mola: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-expo: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+@utility sem-barra {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility margem {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+
+/* O título da plataforma: Big Shoulders, condensado e forte, em caixa alta */
+@utility titulo {
+  font-family: var(--font-titulo);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 0.92;
+}
+
+/* O título com a fonte da marca (a academia ou o personal) */
+@utility titulo-marca {
+  font-family: var(--m-fonte);
+  font-weight: var(--m-fonte-peso);
+  text-transform: var(--m-fonte-caixa);
+  letter-spacing: var(--m-fonte-espaco);
+  line-height: 0.98;
+}
+
+/* números que mudam (a carga, o cronômetro, as séries) não pulam de largura */
+@utility dado {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@layer base {
+  html {
+    background: var(--fundo);
+    overflow-x: clip;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--fundo);
+    color: var(--texto);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  ::selection {
+    background: rgb(245 197 24 / 0.32);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--anilha);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  :where(.grid) > * {
+    min-width: 0;
+  }
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.8rem;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    transition:
+      transform 0.3s var(--ease-mola),
+      background-color 0.2s,
+      color 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s,
+      filter 0.2s;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+  }
+  .btn-p {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.84rem;
+  }
+  .btn-m {
+    padding: 0.85rem 1.2rem;
+    font-size: 0.95rem;
+  }
+  .btn-g {
+    padding: 1.05rem 1.45rem;
+    font-size: 1.02rem;
+  }
+  /* o amarelo da anilha: a ação principal da plataforma */
+  .btn-anilha {
+    background: var(--anilha);
+    color: var(--anilha-texto);
+    box-shadow:
+      0 14px 30px -16px rgb(245 197 24 / 0.75),
+      inset 0 -2px 0 rgb(0 0 0 / 0.14);
+  }
+  .btn-anilha:hover:not(:disabled) {
+    background: var(--anilha-2);
+  }
+  .btn-anilha:disabled,
+  .btn-marca:disabled {
+    background: var(--sup-3);
+    color: var(--fraco);
+    box-shadow: none;
+    opacity: 1;
+  }
+  /* com a cor da marca (o app da academia e do personal) */
+  .btn-marca {
+    background: var(--m-destaque);
+    color: var(--m-destaque-texto);
+    border-radius: var(--m-raio-botao);
+  }
+  .btn-marca:hover:not(:disabled) {
+    filter: brightness(1.07);
+  }
+  .btn-sup {
+    background: var(--sup-2);
+    color: var(--texto);
+    border: 1px solid var(--linha);
+  }
+  .btn-sup:hover:not(:disabled) {
+    background: var(--sup-3);
+  }
+  .btn-contorno {
+    border: 1px solid var(--linha-2);
+    background: transparent;
+    color: var(--texto);
+  }
+  .btn-contorno:hover:not(:disabled) {
+    background: var(--sup-2);
+  }
+  .btn-fantasma {
+    background: transparent;
+    color: var(--suave);
+  }
+  .btn-fantasma:hover:not(:disabled) {
+    background: var(--sup-2);
+    color: var(--texto);
+  }
+  .btn-perigo {
+    background: var(--perigo-fundo);
+    color: #ffffff;
+  }
+
+  .campo {
+    width: 100%;
+    border-radius: 0.8rem;
+    border: 1px solid var(--linha-2);
+    background: var(--sup-2);
+    padding: 0.8rem 0.95rem;
+    font-size: 1rem;
+    color: var(--texto);
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+  .campo::placeholder {
+    color: var(--fraco);
+  }
+  .campo:focus {
+    outline: none;
+    border-color: var(--anilha);
+    box-shadow: 0 0 0 4px rgb(245 197 24 / 0.14);
+  }
+  select.campo {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%23a9aab2' stroke-width='1.6'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.95rem center;
+    padding-right: 2.4rem;
+  }
+
+  .rotulo {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: var(--suave);
+  }
+
+  /* o rótulo das seções: pequeno, caixa alta, espaçado */
+  .sobre {
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fraco);
+  }
+
+  .cartao {
+    border-radius: 1.1rem;
+    background: var(--sup);
+    border: 1px solid var(--linha);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 9999px;
+    padding: 0.36rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 650;
+    white-space: nowrap;
+    background: var(--sup-2);
+    border: 1px solid var(--linha);
+    color: var(--texto);
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+  .chip:is([aria-pressed="true"], [aria-selected="true"], [aria-checked="true"]) {
+    background: var(--texto);
+    color: var(--fundo);
+    border-color: transparent;
+  }
+
+  /* tudo o que leva a marca da academia ou do personal */
+  .com-marca {
+    background: var(--m-fundo);
+    color: var(--m-texto);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
