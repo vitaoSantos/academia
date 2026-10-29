@@ -1,5 +1,5 @@
 import { PLATAFORMA_PADRAO } from '../../src/shared/planos.ts'
-import type { ConfigPlataforma, Post } from '../../src/shared/tipos.ts'
+import type { Comentario, ConfigPlataforma, Post } from '../../src/shared/tipos.ts'
 import { adminLigado, cookieDoAdmin, eAdmin, entrarNoAdmin, exigirAdmin, motivoDe, pedeCodigo, registrar, saidaDoAdmin } from '../lib/admin.ts'
 import { empresas, geral, moderacao, profissionais, registro, usuarios } from '../lib/admin-dados.ts'
 import { lerConta, mudarConta } from '../lib/contas.ts'
@@ -19,6 +19,10 @@ import { atualizar, blobs, CHAVES, gravarJSON } from '../lib/store.ts'
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/
 
 const sessao = (req: Request) => ({ ligado: adminLigado(), entrou: eAdmin(req), codigo: adminLigado() && pedeCodigo() })
+
+// o que o registro diz de cada ação, em português
+const textoDaOp = (corpo: Record<string, unknown>, plano: string) =>
+  corpo.op === 'suspender' ? 'suspensa' : corpo.op === 'reativar' ? 'reativada' : corpo.op === 'plano' ? `plano ${plano === 'premium' ? 'Premium' : 'Básico'}` : corpo.op === 'teste' ? `teste estendido em ${Math.min(90, Math.max(1, Number(corpo.dias) || 15))} dias` : String(corpo.op)
 
 function configDe(corpo: Record<string, unknown>, atual: ConfigPlataforma): ConfigPlataforma {
   const c = (corpo.config ?? {}) as Partial<ConfigPlataforma>
@@ -99,7 +103,7 @@ export default rotas({
           return falhar(400, 'O que fazer com a empresa?')
         })
         if (e.status === 'suspensa') await tirarDoIndice(slug)
-        await registrar(`Empresa ${e.nome}: ${corpo.op}${corpo.op === 'plano' ? ` (${e.plano})` : ''}`, motivo)
+        await registrar(`Empresa ${e.nome}: ${textoDaOp(corpo, e.plano)}`, motivo)
         return json({ ok: true })
       }
       case 'profissional': {
@@ -111,7 +115,7 @@ export default rotas({
           if (corpo.op === 'teste') return { ...x, plano: 'teste', status: 'teste', testeAte: new Date(Date.now() + Math.min(90, Math.max(1, Number(corpo.dias) || 15)) * 86_400_000).toISOString() }
           return falhar(400, 'O que fazer com o profissional?')
         })
-        await registrar(`Profissional ${p.nome}: ${corpo.op}`, motivo)
+        await registrar(`Profissional ${p.nome}: ${textoDaOp(corpo, p.plano)}`, motivo)
         return json({ ok: true })
       }
       case 'usuario': {
@@ -125,7 +129,7 @@ export default rotas({
           if (corpo.op === 'gratis') return { ...x, plano: 'gratis', maisAte: undefined }
           return falhar(400, 'O que fazer com a conta?')
         })
-        await registrar(`Conta ${c.nome} (@${c.usuario}): ${corpo.op}`, motivo)
+        await registrar(`Conta ${c.nome} (@${c.usuario}): ${{ bloquear: 'bloqueada', desbloquear: 'desbloqueada', mais: 'Turma+ por um ano', gratis: 'de volta ao grátis' }[String(corpo.op)] ?? corpo.op}`, motivo)
         return json({ ok: true })
       }
       case 'moderacao': {
@@ -141,6 +145,16 @@ export default rotas({
             await atualizar<Post | null>(CHAVES.post(d.alvo.id), null, (p) => (p ? { ...p, oculto, denuncias: oculto ? p.denuncias : [] } : p))
             await atualizar<LinhaFeed[]>(CHAVES.feed, [], (l) => l.map((x) => (x.id === d.alvo.id ? { ...x, oculto: oculto || undefined } : x)))
           }
+        }
+        if (d.alvo.tipo === 'comentario' && d.alvo.post) {
+          const post = d.alvo.post
+          let apagou = false
+          await atualizar<Comentario[]>(CHAVES.comentarios(post), [], (l) => {
+            if (decisao !== 'apagar') return l.map((c) => (c.id === d.alvo.id ? { ...c, oculto: decisao === 'ocultar', denuncias: decisao === 'ocultar' ? c.denuncias : [] } : c))
+            apagou = l.some((c) => c.id === d.alvo.id)
+            return l.filter((c) => c.id !== d.alvo.id)
+          })
+          if (apagou) await atualizar<Post | null>(CHAVES.post(post), null, (p) => (p ? { ...p, comentarios: Math.max(0, p.comentarios - 1) } : p))
         }
         await registrar(`Moderação: ${decisao} (${d.alvo.tipo} denunciado por "${d.motivo}")`)
         return json(await moderacao())

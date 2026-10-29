@@ -1,5 +1,6 @@
 import { MotionConfig } from 'motion/react'
 import { lazy, Suspense, type ReactNode } from 'react'
+import { AvisoDaPlataforma } from './components/layout/AvisoDaPlataforma'
 import { AvisoProvider } from './components/ui/Aviso'
 import { Girando } from './components/ui/basicos'
 import { useEndereco } from './lib/rotas'
@@ -49,6 +50,7 @@ const ProEditarFicha = lazy(() => import('./pro/EditarFicha'))
 const ProAgenda = lazy(() => import('./pro/Agenda'))
 const ProPerfil = lazy(() => import('./pro/Perfil'))
 const Painel = lazy(() => import('./painel/Painel'))
+const Admin = lazy(() => import('./admin/Admin'))
 
 function Carregando() {
   return (
@@ -98,6 +100,7 @@ function Tela() {
   else if (primeira === 'mensagens') tela = segunda ? <Conversa key={segunda} id={segunda} /> : <Mensagens />
   else if (primeira === 'pro') tela = telaDoPro(segunda, terceira)
   else if (primeira === 'painel' && segunda && slugValido(segunda.toLowerCase())) tela = <Painel key={segunda} slug={segunda.toLowerCase()} secao={terceira} id={quarta} />
+  else if (primeira === 'admin' && !terceira) tela = <Admin aba={segunda} />
   else if (primeira === 'lab') tela = <Lab inicial={segunda} />
   else if (primeira === 'explorar') tela = <Explorar />
   else if (caminho === '/entrar') tela = <Entrar />
@@ -109,7 +112,12 @@ function Tela() {
   else if (primeira && !segunda && slugValido(primeira.toLowerCase())) tela = <Pagina key={primeira} slug={primeira.toLowerCase()} />
   else tela = <NaoEncontrada />
 
-  return <Suspense fallback={<Carregando />}>{tela}</Suspense>
+  return (
+    <>
+      {primeira !== 'admin' && primeira !== 'lab' && <AvisoDaPlataforma />}
+      <Suspense fallback={<Carregando />}>{tela}</Suspense>
+    </>
+  )
 }
 
 export default function App() {

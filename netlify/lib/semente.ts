@@ -35,6 +35,7 @@ import type {
 import type { FichaDoPainel, LinhaConversa, ReservaDoAluno, ResumoFicha, SessaoDoAluno } from '../../src/shared/respostas.ts'
 import { protegerSenha, type ContaGuardada } from './auth.ts'
 import { idDaConversa, chaveDoLado } from './conversas.ts'
+import type { NumerosDoDia } from './estatisticas.ts'
 import { linhasDe } from './empresas.ts'
 import type { LinhaDesafio } from './desafios.ts'
 import { indexarProfissional } from './profissionais.ts'
@@ -1029,6 +1030,21 @@ export async function semear() {
   await atualizar<LinhaUnidade[]>(CHAVES.indiceUnidades, [], (l) => [...l.filter((x) => !slugsDemo.has(x.empresa)), ...lista.flatMap((e) => linhasDe(e))])
   await atualizar<LinhaDesafio[]>(CHAVES.desafios, [], (l) => [...linhasDesafio, ...l.filter((x) => !x.id.startsWith('desafiodemo'))])
   for (const p of profissionais) await indexarProfissional(proPorId.get(p.id)!)
+
+  // os números de cada dia no admin, à parte (como demonstração): os cadastros, os treinos, os posts
+  // e as reservas que a demonstração tem nos últimos 14 dias; os de verdade não mudam
+  const zero = () => ({ cadastros: 0, treinos: 0, posts: 0, reservas: 0 })
+  const porData = new Map<string, NumerosDoDia['demo']>()
+  for (let i = 0; i < 14; i++) porData.set(somarDias(hojeD(), -i), zero())
+  const contar = (iso: string, campo: keyof NumerosDoDia['demo']) => {
+    const n = porData.get(dataDe(iso))
+    if (n) n[campo]++
+  }
+  for (const c of contas.values()) contar(c.criadaEm, 'cadastros')
+  for (const l of treinos.values()) for (const t of l) contar(t.inicio, 'treinos')
+  for (const p of posts) contar(p.criadoEm, 'posts')
+  for (const f of folhas.values()) for (const x of Object.values(f)) for (const r of x.reservas) contar(r.em, 'reservas')
+  await emParalelo([...porData], ([data, demo]) => atualizar<NumerosDoDia>(CHAVES.dia(data), { ...zero(), demo: zero() }, (x) => ({ ...x, demo })), 8)
 }
 
 // ---------- Garantir que a demonstração existe (e está em dia) ----------

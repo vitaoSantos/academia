@@ -6,7 +6,8 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 
 export type Coluna = { rotulo: string; valor: number; detalhe?: string }
 
-export function GraficoColunas({ colunas, meta, rotulo, altura = 170, unidade = '' }: { colunas: Coluna[]; meta?: number; rotulo: string; altura?: number; unidade?: string }) {
+// `recentes`: as últimas colunas na cor de destaque (o período atual) e as de antes em cinza
+export function GraficoColunas({ colunas, meta, rotulo, altura = 170, unidade = '', recentes }: { colunas: Coluna[]; meta?: number; rotulo: string; altura?: number; unidade?: string; recentes?: { n: number; nome: string; antes: string } }) {
   const caixa = useRef<HTMLDivElement>(null)
   const [largura, setLargura] = useState(600)
   const [ativo, setAtivo] = useState<number | null>(null)
@@ -73,7 +74,7 @@ export function GraficoColunas({ colunas, meta, rotulo, altura = 170, unidade = 
             const topoY = base - alto
             // a ponta arredondada, a base reta
             const d = alto > 0 ? `M${x0},${base}V${topoY + r}Q${x0},${topoY} ${x0 + r},${topoY}H${x0 + grossura - r}Q${x0 + grossura},${topoY} ${x0 + grossura},${topoY + r}V${base}Z` : ''
-            const bate = meta !== undefined && c.valor >= meta
+            const bate = meta !== undefined ? c.valor >= meta : !!recentes && i > ultimo - recentes.n
             return (
               <g key={i} onPointerEnter={() => setAtivo(i)} onPointerDown={() => setAtivo(i)}>
                 {/* a área de toque é a faixa inteira, não só a coluna */}
@@ -108,6 +109,11 @@ export function GraficoColunas({ colunas, meta, rotulo, altura = 170, unidade = 
             <>
               <span className="inline-block size-2.5 rounded-sm bg-anilha" /> bateu a meta
               <span className="ml-2 inline-block size-2.5 rounded-sm bg-sup-3" /> abaixo
+            </>
+          ) : recentes ? (
+            <>
+              <span className="inline-block size-2.5 rounded-sm bg-anilha" /> {recentes.nome}
+              <span className="ml-2 inline-block size-2.5 rounded-sm bg-sup-3" /> {recentes.antes}
             </>
           ) : null}
         </span>

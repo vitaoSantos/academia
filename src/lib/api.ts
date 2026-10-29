@@ -43,6 +43,7 @@ import type {
   Cidade,
   Circunferencia,
   ConfigAgenda,
+  ConfigPlataforma,
   ContextoFicha,
   Convite,
   Divisao,
@@ -53,9 +54,13 @@ import type {
   LocalAtendimento,
   Marcado,
   ModeloFicha,
+  Nota,
   PapelEmpresa,
   PedidoExperimental,
   PessoaResumo,
+  PlanoAluno,
+  PlanoEmpresa,
+  PlanoProfissional,
   Ponto,
   PresetVisual,
   Profissional,
@@ -408,4 +413,45 @@ export const desafios = {
     post<DesafioCompleto>('desafio', 'criar', d),
   entrar: (alvo: { id?: string; codigo?: string }) => post<DesafioCompleto>('desafio', 'entrar', alvo),
   sair: (id: string) => post<{ ok: true }>('desafio', 'sair', { id }),
+}
+
+// ---------- O admin da plataforma ----------
+
+export type SessaoDoAdmin = { ligado: boolean; entrou: boolean; codigo: boolean }
+export type DiaDoAdmin = { data: string; cadastros: number; treinos: number; posts: number; reservas: number }
+export type GeralDoAdmin = {
+  contas: number
+  turmaMais: number
+  empresas: { total: number; teste: number; ativas: number; suspensas: number; unidades: number; alunos: number }
+  profissionais: { total: number; personais: number; professores: number; premium: number }
+  receita: { academias: number; personais: number; alunos: number; total: number }
+  dias: DiaDoAdmin[]
+  denuncias: number
+}
+type Nivel = 'premium' | 'basico' | 'nenhum'
+export type EmpresaNoAdmin = { slug: string; nome: string; tipo: TipoEmpresa; plano: PlanoEmpresa; planoDepois?: Exclude<PlanoEmpresa, 'teste'>; status: Empresa['status']; nivel: Nivel; testeAte?: string; unidades: string[]; alunos: number; nota: Nota; mensalidade: number; criadaEm: string; demo: boolean }
+export type ProfissionalNoAdmin = { id: string; slug: string; nome: string; personal: boolean; plano: PlanoProfissional; status: Profissional['status']; nivel: Nivel; testeAte?: string; cidade: string; cref?: string; publico: boolean; numeros: Profissional['numeros']; demo: boolean }
+export type ContaNoAdmin = PessoaResumo & { email?: string; celular?: string; cidade: string; plano: PlanoAluno; maisAte?: string; publico: boolean; bloqueado: boolean; criadaEm: string; empresas: { slug: string; papel: PapelEmpresa }[]; demo: boolean }
+export type DenunciaNoAdmin = { id: string; alvo: { tipo: 'post' | 'comentario' | 'perfil'; id: string; post?: string; autor: string }; de: string; motivo: string; em: string; conteudo: string }
+export type AcaoRegistrada = { id: string; em: string; texto: string; motivo?: string }
+
+const semDemo = (demo: boolean) => (demo ? undefined : 0)
+
+export const admin = {
+  sessao: () => chamar<SessaoDoAdmin>('admin', { busca: { aba: 'sessao' } }),
+  entrar: (senha: string, codigo?: string) => post<SessaoDoAdmin>('admin', 'entrar', { senha, codigo }),
+  sair: () => post<SessaoDoAdmin>('admin', 'sair'),
+  geral: (demo: boolean) => chamar<GeralDoAdmin>('admin', { busca: { aba: 'geral', demo: semDemo(demo) } }),
+  empresas: (demo: boolean) => chamar<{ empresas: EmpresaNoAdmin[] }>('admin', { busca: { aba: 'empresas', demo: semDemo(demo) } }),
+  profissionais: (demo: boolean) => chamar<{ profissionais: ProfissionalNoAdmin[] }>('admin', { busca: { aba: 'profissionais', demo: semDemo(demo) } }),
+  usuarios: (q: string, demo: boolean) => chamar<{ usuarios: ContaNoAdmin[] }>('admin', { busca: { aba: 'usuarios', q: q || undefined, demo: semDemo(demo) } }),
+  moderacao: () => chamar<{ denuncias: DenunciaNoAdmin[] }>('admin', { busca: { aba: 'moderacao' } }),
+  plataforma: () => chamar<{ config: ConfigPlataforma; padrao: ConfigPlataforma }>('admin', { busca: { aba: 'plataforma' } }),
+  registro: (mes?: string) => chamar<{ mes: string; meses: string[]; acoes: AcaoRegistrada[] }>('admin', { busca: { aba: 'registro', mes } }),
+  empresa: (slug: string, op: 'suspender' | 'reativar' | 'plano' | 'teste', motivo: string, extra: { plano?: 'basico' | 'premium'; dias?: number } = {}) => post<{ ok: true }>('admin', 'empresa', { slug, op, motivo, ...extra }),
+  profissional: (id: string, op: 'suspender' | 'reativar' | 'plano' | 'teste', motivo: string, extra: { plano?: 'basico' | 'premium'; dias?: number } = {}) => post<{ ok: true }>('admin', 'profissional', { id, op, motivo, ...extra }),
+  usuario: (id: string, op: 'bloquear' | 'desbloquear' | 'mais' | 'gratis', motivo: string) => post<{ ok: true }>('admin', 'usuario', { id, op, motivo }),
+  moderar: (id: string, decisao: 'liberar' | 'ocultar' | 'apagar') => post<{ denuncias: DenunciaNoAdmin[] }>('admin', 'moderacao', { id, decisao }),
+  salvarPlataforma: (config: ConfigPlataforma) => post<{ config: ConfigPlataforma }>('admin', 'plataforma', { config }),
+  recriarDemo: () => post<{ ok: true }>('admin', 'demo-recriar'),
 }
