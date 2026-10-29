@@ -19,7 +19,7 @@ import { reservarPagina, sugerirPagina } from '../lib/paginas.ts'
 import { lerPlataforma } from '../lib/plataforma.ts'
 import { indexarProfissional, lerProfissional, mudarProfissional } from '../lib/profissionais.ts'
 import { mudarPrivacidadeDosPosts } from '../lib/rede.ts'
-import { CONTAS_DEMO, criarAlunoDeVisita, garantirDemonstracao } from '../lib/semente.ts'
+import { CONTAS_DEMO, criarAlunoDeVisita, demonstracaoLigada, garantirDemonstracao } from '../lib/semente.ts'
 import { atualizar, blobs, CHAVES, criarSeNovo, novoId } from '../lib/store.ts'
 import { anotarVisita } from '../lib/visitas.ts'
 
@@ -90,6 +90,7 @@ async function cadastro(corpo: Corpo, req: Request, context: Context) {
 // professor e a academia são as contas da demonstração
 async function demo(corpo: Corpo, req: Request, context: Context) {
   await limitar('demo', await quem(context), 40, 3600_000, 'Muitas demonstrações deste endereço. Tente mais tarde.')
+  if (!(await demonstracaoLigada())) falhar(410, 'A demonstração saiu do ar.')
   await garantirDemonstracao()
   const papel = corpo.papel
   if (papel === 'personal' || papel === 'professor' || papel === 'academia') {

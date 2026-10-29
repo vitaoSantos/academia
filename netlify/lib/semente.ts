@@ -490,7 +490,9 @@ function treinoDeAula(conta: string, modalidade: string, nome: string, atras: nu
 
 type Doc = [string, unknown]
 
-export async function semear() {
+// `apagar`: monta a mesma demonstração só para saber o que é dela, e tira tudo (os documentos e as
+// linhas dos índices); o que é de verdade não muda
+export async function semear({ apagar = false } = {}) {
   agora = Date.now()
   const docs: Doc[] = []
   const senha = await protegerSenha(`demo-${agora}-sem-login`) // as contas de demonstração não entram com senha
@@ -1021,15 +1023,18 @@ export async function semear() {
     if (deVerdade) ocupadas.add(chave)
   }
   if (ocupadas.size) console.error('Demonstração: endereços já usados por páginas de verdade ficaram de fora', [...ocupadas])
-  await emParalelo(docs.filter(([chave]) => !ocupadas.has(chave)), ([chave, valor]) => blobs().setJSON(chave, valor), 48)
+  const nossos = docs.filter(([chave]) => !ocupadas.has(chave))
+  if (apagar) await emParalelo(nossos, ([chave]) => blobs().delete(chave), 48)
+  else await emParalelo(nossos, ([chave, valor]) => blobs().setJSON(chave, valor), 48)
 
-  // os índices compartilhados: tira o que era da demonstração e põe o novo
+  // os índices compartilhados: tira o que era da demonstração e põe o novo (ou nada, ao apagar)
   const idsDemo = new Set([...contas.values()].map((c) => c.id))
   const slugsDemo = new Set(lista.map((e) => e.slug))
-  await atualizar<LinhaFeed[]>(CHAVES.feed, [], (l) => [...feed, ...l.filter((x) => !idsDemo.has(x.autor) && !x.id.startsWith('pdemo'))].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)))
-  await atualizar<LinhaUnidade[]>(CHAVES.indiceUnidades, [], (l) => [...l.filter((x) => !slugsDemo.has(x.empresa)), ...lista.flatMap((e) => linhasDe(e))])
-  await atualizar<LinhaDesafio[]>(CHAVES.desafios, [], (l) => [...linhasDesafio, ...l.filter((x) => !x.id.startsWith('desafiodemo'))])
-  for (const p of profissionais) await indexarProfissional(proPorId.get(p.id)!)
+  await atualizar<LinhaFeed[]>(CHAVES.feed, [], (l) => [...(apagar ? [] : feed), ...l.filter((x) => !idsDemo.has(x.autor) && !x.id.startsWith('pdemo'))].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)))
+  await atualizar<LinhaUnidade[]>(CHAVES.indiceUnidades, [], (l) => [...l.filter((x) => !slugsDemo.has(x.empresa)), ...(apagar ? [] : lista.flatMap((e) => linhasDe(e)))])
+  await atualizar<LinhaDesafio[]>(CHAVES.desafios, [], (l) => [...(apagar ? [] : linhasDesafio), ...l.filter((x) => !x.id.startsWith('desafiodemo'))])
+  if (apagar) await atualizar<{ id: string }[]>(CHAVES.indiceProfissionais, [], (l) => l.filter((x) => !idsDemo.has(x.id)))
+  else for (const p of profissionais) await indexarProfissional(proPorId.get(p.id)!)
 
   // os números de cada dia no admin, à parte (como demonstração): os cadastros, os treinos, os posts
   // e as reservas que a demonstração tem nos últimos 14 dias; os de verdade não mudam
@@ -1044,12 +1049,13 @@ export async function semear() {
   for (const l of treinos.values()) for (const t of l) contar(t.inicio, 'treinos')
   for (const p of posts) contar(p.criadoEm, 'posts')
   for (const f of folhas.values()) for (const x of Object.values(f)) for (const r of x.reservas) contar(r.em, 'reservas')
+  if (apagar) for (const k of porData.keys()) porData.set(k, zero())
   await emParalelo([...porData], ([data, demo]) => atualizar<NumerosDoDia>(CHAVES.dia(data), { ...zero(), demo: zero() }, (x) => ({ ...x, demo })), 8)
 }
 
 // ---------- Garantir que a demonstração existe (e está em dia) ----------
 
-type Marca = { versao: number; em: number; fazendo?: number }
+type Marca = { versao: number; em: number; fazendo?: number; desligada?: boolean }
 
 let garantida = 0
 
@@ -1060,7 +1066,8 @@ export async function garantirDemonstracao() {
   const b = blobs()
   const entrada = await b.getWithMetadata(CHAVES.semente, { type: 'json' })
   const marca = entrada?.data as Marca | undefined
-  const emDia = marca && marca.versao === VERSAO_DEMO && Date.now() - marca.em < VALIDADE
+  // o admin apagou a demonstração: fica sem até alguém recriar
+  const emDia = marca && (marca.desligada || (marca.versao === VERSAO_DEMO && Date.now() - marca.em < VALIDADE))
   if (emDia) {
     garantida = Date.now()
     return
@@ -1082,6 +1089,21 @@ export async function garantirDemonstracao() {
 
 export const esquecerDemonstracao = () => {
   garantida = 0
+}
+
+// O admin tira a demonstração inteira (para o lançamento) e ela não volta sozinha
+export async function apagarDemonstracao() {
+  await blobs().setJSON(CHAVES.semente, { versao: VERSAO_DEMO, em: Date.now(), fazendo: Date.now() } satisfies Marca)
+  await semear({ apagar: true })
+  await blobs().setJSON(CHAVES.semente, { versao: VERSAO_DEMO, em: Date.now(), desligada: true } satisfies Marca)
+  garantida = Date.now()
+}
+
+// Se a demonstração está no ar (a landing mostra o "experimente sem cadastro")
+export async function demonstracaoLigada() {
+  if (env('TURMA_SEM_DEMONSTRACAO')) return false
+  const marca = await lerJSON<Marca | null>(CHAVES.semente, null)
+  return !marca?.desligada
 }
 
 // ---------- A conta de quem experimenta como aluno ----------

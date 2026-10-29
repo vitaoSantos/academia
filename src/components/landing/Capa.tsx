@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { PiArrowRight, PiMapTrifold, PiUsersThree } from 'react-icons/pi'
-import { explorar, mensagemDeErro, sessao } from '../../lib/api'
+import { explorar, mensagemDeErro, plataforma, sessao } from '../../lib/api'
 import { useDados } from '../../lib/dados'
 import { useLocal } from '../../lib/local'
 import { Link, navegar } from '../../lib/rotas'
@@ -126,6 +126,8 @@ export function Experimentar() {
   const s = useSessao()
   const avisar = useAviso()
   const [entrando, setEntrando] = useState<string | null>(null)
+  // o admin pode tirar a demonstração (no lançamento): aí não tem o que experimentar
+  const noAr = useDados('plataforma', () => plataforma.ler()).dados?.demonstracao !== false
   const entrar = async (papel: 'aluno' | 'personal' | 'professor' | 'academia') => {
     setEntrando(papel)
     try {
@@ -143,6 +145,7 @@ export function Experimentar() {
     { id: 'professor', nome: 'Professor', texto: 'Diego: dá aula em três lugares' },
     { id: 'academia', nome: 'Academia', texto: 'Força Total: a rede com quatro unidades' },
   ] as const
+  if (!noAr) return null
   return (
     <div className="margem mx-auto max-w-7xl pb-6">
       <div className="cartao flex flex-col gap-4 p-5 lg:flex-row lg:items-center">

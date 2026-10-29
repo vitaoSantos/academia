@@ -309,5 +309,6 @@ export type PlataformaPublica = {
   diasTeste: number
   raioPadrao: number
   cadastroAberto: boolean
+  demonstracao: boolean // o "experimente sem cadastro" (o admin pode apagar a demonstração)
   aviso: string
 }

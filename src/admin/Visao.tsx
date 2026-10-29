@@ -100,14 +100,16 @@ export function VisaoDoAdmin() {
   const r = d.receita
   const parte = (v: number) => (r.total ? `${Math.round((v / r.total) * 100)}%` : '–')
 
-  const recriar = async () => {
-    if (!confirm('Recriar a demonstração? As contas de demonstração voltam ao começo; o resto da plataforma não muda.')) return
+  const demonstracao = async (o: 'recriar' | 'apagar') => {
+    if (o === 'apagar' && !confirm('Apagar a demonstração? A Força Total, o Rafa, a Ana e as outras contas de exemplo saem do mapa, da rede e da landing. O que é de verdade não muda. Dá para recriar depois.')) return
+    if (o === 'recriar' && !confirm('Recriar a demonstração? As contas de exemplo voltam ao começo; o resto da plataforma não muda.')) return
     setRecriando(true)
     try {
-      await admin.recriarDemo()
+      await (o === 'apagar' ? admin.apagarDemo() : admin.recriarDemo())
       esquecer('admin')
+      esquecer('plataforma')
       await g.recarregar()
-      avisar('Demonstração recriada.')
+      avisar(o === 'apagar' ? 'Demonstração apagada. A landing não mostra mais o "experimente".' : 'Demonstração recriada.')
     } catch (err) {
       avisar(mensagemDeErro(err), 'erro')
     } finally {
@@ -143,7 +145,11 @@ export function VisaoDoAdmin() {
 
       <section aria-label="Números da plataforma" className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <Numero rotulo="Contas" valor={compacto(d.contas)} sub={`${numero(d.turmaMais)} no Turma+`} />
-        <Numero rotulo="Empresas" valor={compacto(d.empresas.total)} sub={`${plural(d.empresas.ativas, 'ativa', 'ativas')} · ${d.empresas.teste} no teste${d.empresas.suspensas ? ` · ${plural(d.empresas.suspensas, 'suspensa', 'suspensas')}` : ''}`} />
+        <Numero
+          rotulo="Empresas"
+          valor={compacto(d.empresas.total)}
+          sub={`${plural(d.empresas.ativas, 'ativa', 'ativas')} · ${d.empresas.teste} no teste${d.empresas.suspensas ? ` · ${plural(d.empresas.suspensas, 'suspensa', 'suspensas')}` : ''}`}
+        />
         <Numero rotulo="Unidades no mapa" valor={compacto(d.empresas.unidades)} />
         <Numero rotulo="Alunos nas academias" valor={compacto(d.empresas.alunos)} />
         <Numero rotulo="Profissionais" valor={compacto(d.profissionais.total)} sub={`${plural(d.profissionais.personais, 'personal', 'personais')} · ${plural(d.profissionais.professores, 'professor', 'professores')}`} />
@@ -157,13 +163,24 @@ export function VisaoDoAdmin() {
       <section className="cartao flex flex-wrap items-center gap-4 p-5" aria-labelledby="demo">
         <div className="min-w-0 flex-1">
           <h2 id="demo" className="font-semibold">
-            Demonstração
+            Demonstração {d.demonstracao ? 'no ar' : 'fora do ar'}
           </h2>
-          <p className="mt-1 text-sm text-suave">As contas de exemplo (a Força Total, o Rafa, a Ana...) se recriam sozinhas a cada três dias. Recrie agora se alguém bagunçou.</p>
+          <p className="mt-1 text-sm text-suave">
+            {d.demonstracao
+              ? 'As contas de exemplo (a Força Total, o Rafa, a Ana...) se recriam sozinhas a cada três dias. Recrie agora se alguém bagunçou, ou apague para o lançamento.'
+              : 'Sem as contas de exemplo: a landing não mostra o "experimente sem cadastro". Recriar traz tudo de volta.'}
+          </p>
         </div>
-        <button type="button" className="btn btn-sup btn-m" disabled={recriando} onClick={recriar}>
-          {recriando ? <Girando /> : 'Recriar agora'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn btn-sup btn-m" disabled={recriando} onClick={() => demonstracao('recriar')}>
+            {recriando ? <Girando /> : d.demonstracao ? 'Recriar agora' : 'Recriar a demonstração'}
+          </button>
+          {d.demonstracao && (
+            <button type="button" className="btn btn-perigo btn-m" disabled={recriando} onClick={() => demonstracao('apagar')}>
+              Apagar
+            </button>
+          )}
+        </div>
       </section>
     </div>
   )

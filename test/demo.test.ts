@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
+import admin from '../netlify/functions/admin.mts'
 import aluno from '../netlify/functions/aluno.mts'
 import conversa from '../netlify/functions/conversa.mts'
 import explorar from '../netlify/functions/explorar.mts'
 import pagina from '../netlify/functions/pagina.mts'
 import painel from '../netlify/functions/painel.mts'
+import plataforma from '../netlify/functions/plataforma.mts'
 import pro from '../netlify/functions/pro.mts'
 import rede from '../netlify/functions/rede.mts'
 import sessao from '../netlify/functions/sessao.mts'
@@ -114,4 +116,30 @@ test('experimentar como personal, professor e academia abre os painéis prontos'
   assert.ok(visao.dados.alunos.ativos >= 6)
   assert.equal(visao.dados.experimentais.length, 1)
   assert.ok(visao.dados.alunos.pendentes >= 1)
+})
+
+test('o admin apaga a demonstração para o lançamento (e o que é de verdade fica); recriar traz de volta', async () => {
+  process.env.ADMIN_PASSWORD = 'senha-do-admin-da-demo'
+  // uma academia de verdade, que não pode sumir junto
+  const dona = new Navegador('10.7.2.1')
+  const real = await dona.chamar(sessao, 'POST', '/s', { acao: 'empresa', empresa: 'Academia de Verdade', tipo: 'academia', cidade: SL, unidade: { nome: 'Centro', endereco: 'Rua Real, 10', ponto: { lat: SL.lat, lng: SL.lng } }, nome: 'Dona Real', login: 'dona@real.com', senha: 'senha-forte-123' })
+  assert.equal(real.status, 201, JSON.stringify(real.dados))
+  const adm = new Navegador('10.7.2.2')
+  await adm.chamar(admin, 'POST', '/a', { acao: 'entrar', senha: 'senha-do-admin-da-demo' })
+  const apagou = await adm.chamar(admin, 'POST', '/a', { acao: 'demo-apagar' })
+  assert.equal(apagou.status, 200, JSON.stringify(apagou.dados))
+
+  assert.equal((await new Navegador().chamar(pagina, 'GET', '/p?slug=forca-total')).status, 404)
+  const mapa = await new Navegador().chamar(explorar, 'GET', `/e?lat=${SL.lat}&lng=${SL.lng}&raio=50`)
+  assert.deepEqual(mapa.dados.unidades.map((u: { nome: string }) => u.nome), ['Academia de Verdade'])
+  assert.equal(mapa.dados.profissionais.length, 0)
+  assert.equal((await new Navegador().chamar(plataforma, 'GET', '/p')).dados.demonstracao, false)
+  assert.equal((await new Navegador('10.7.2.3').chamar(sessao, 'POST', '/s', { acao: 'demo', papel: 'academia' })).status, 410)
+  const feed = await new Navegador().chamar(rede, 'GET', `/r?feed&lat=${SL.lat}&lng=${SL.lng}`)
+  assert.equal(feed.dados.posts.length, 0, 'os posts da demonstração saíram do feed')
+  assert.equal((await new Navegador().chamar(pagina, 'GET', `/p?slug=${real.dados.empresa}`)).status, 200, 'a de verdade continua')
+
+  await adm.chamar(admin, 'POST', '/a', { acao: 'demo-recriar' })
+  assert.equal((await new Navegador().chamar(pagina, 'GET', '/p?slug=forca-total')).status, 200)
+  assert.equal((await new Navegador().chamar(plataforma, 'GET', '/p')).dados.demonstracao, true)
 })

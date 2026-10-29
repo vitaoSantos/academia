@@ -8,13 +8,14 @@ import { falhar, json, lerCorpo, rotas } from '../lib/http.ts'
 import { lerPlataforma } from '../lib/plataforma.ts'
 import { mudarProfissional } from '../lib/profissionais.ts'
 import type { Denuncia, LinhaFeed } from '../lib/rede.ts'
-import { esquecerDemonstracao, garantirDemonstracao } from '../lib/semente.ts'
+import { apagarDemonstracao, demonstracaoLigada, esquecerDemonstracao, garantirDemonstracao } from '../lib/semente.ts'
 import { atualizar, blobs, CHAVES, gravarJSON } from '../lib/store.ts'
 
 // O admin da plataforma (/admin): só com a senha (e o código do autenticador, se estiver ligado).
 // GET ?aba=sessao|geral|empresas|profissionais|usuarios&q|moderacao|plataforma|registro&mes
 //     (&demo=0 deixa a demonstração de fora)
-// POST { acao }: entrar, sair, empresa, profissional, usuario, moderacao, plataforma, demo-recriar
+// POST { acao }: entrar, sair, empresa, profissional, usuario, moderacao, plataforma, demo-recriar,
+//      demo-apagar
 
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/
 
@@ -66,7 +67,7 @@ export default rotas({
     const demo = u.get('demo') !== '0'
     switch (aba) {
       case 'geral':
-        return json(await geral(demo))
+        return json({ ...(await geral(demo)), demonstracao: await demonstracaoLigada() })
       case 'empresas':
         return json({ empresas: await empresas(demo) })
       case 'profissionais':
@@ -164,6 +165,11 @@ export default rotas({
         await gravarJSON(CHAVES.plataforma, config)
         await registrar('Mudou as regras da plataforma')
         return json({ config })
+      }
+      case 'demo-apagar': {
+        await apagarDemonstracao()
+        await registrar('Apagou a demonstração')
+        return json({ ok: true })
       }
       case 'demo-recriar': {
         await gravarJSON(CHAVES.semente, { versao: 0, em: 0 })

@@ -427,6 +427,7 @@ export type GeralDoAdmin = {
   receita: { academias: number; personais: number; alunos: number; total: number }
   dias: DiaDoAdmin[]
   denuncias: number
+  demonstracao: boolean
 }
 type Nivel = 'premium' | 'basico' | 'nenhum'
 export type EmpresaNoAdmin = { slug: string; nome: string; tipo: TipoEmpresa; plano: PlanoEmpresa; planoDepois?: Exclude<PlanoEmpresa, 'teste'>; status: Empresa['status']; nivel: Nivel; testeAte?: string; unidades: string[]; alunos: number; nota: Nota; mensalidade: number; criadaEm: string; demo: boolean }
@@ -454,4 +455,5 @@ export const admin = {
   moderar: (id: string, decisao: 'liberar' | 'ocultar' | 'apagar') => post<{ denuncias: DenunciaNoAdmin[] }>('admin', 'moderacao', { id, decisao }),
   salvarPlataforma: (config: ConfigPlataforma) => post<{ config: ConfigPlataforma }>('admin', 'plataforma', { config }),
   recriarDemo: () => post<{ ok: true }>('admin', 'demo-recriar'),
+  apagarDemo: () => post<{ ok: true }>('admin', 'demo-apagar'),
 }
