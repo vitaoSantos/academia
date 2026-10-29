@@ -685,7 +685,8 @@ M['agachamento-sumo'] = vaiEVolta([{ tipo: 'kettlebell' }], RITMO_PADRAO, (c) =>
   }
   M['esteira'] = ciclo([{ tipo: 'esteira' }], 0.72, (u) => {
     const pa = (b: number) => 30 * Math.sin(2 * Math.PI * (u + b))
-    const base = pose({ quadril: [0, 0.905 + 0.025 * Math.cos(4 * Math.PI * u), 0], rotQuadril: [7, 0, 0], coluna: [0, 7 * Math.sin(2 * Math.PI * u), 0], E: pe(u, 0.1), D: pe((u + 0.5) % 1, -0.1) })
+    // (de pé na lona, 18 cm acima do chão)
+    const base = pose({ quadril: [0, 1.06 + 0.022 * Math.cos(4 * Math.PI * u), 0], rotQuadril: [7, 0, 0], coluna: [0, 7 * Math.sin(2 * Math.PI * u), 0], E: pe(u, 0.1), D: pe((u + 0.5) % 1, -0.1) })
     const o = ombros(base)
     const braco = (ombro: V3, angulo: number, x: number): Lado => {
       const a = angulo * RAD

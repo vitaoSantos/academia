@@ -15,22 +15,27 @@ type Props = {
   interativo?: boolean
   className?: string
   aoFase?: (fase: number) => void
+  aoTempo?: (fracao: number) => void
+  instante?: number | null // parado neste ponto do ciclo (0 a 1)
 }
 
 const reduzido = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export default function Boneco3D({ exercicio, cor, camera, velocidade = 1, pausado, musculos = true, interativo = true, className = '', aoFase }: Props) {
+export default function Boneco3D({ exercicio, cor, camera, velocidade = 1, pausado, musculos = true, interativo = true, className = '', aoFase, aoTempo, instante }: Props) {
   const tela = useRef<HTMLCanvasElement>(null)
   const palco = useRef<Palco | null>(null)
   const [falhou, setFalhou] = useState(false)
   const fase = useRef(aoFase)
   fase.current = aoFase
+  const tempo = useRef(aoTempo)
+  tempo.current = aoTempo
 
   // a cena nasce uma vez; as props mudam o que ela mostra
   useEffect(() => {
     try {
       const p = criarPalco({ canvas: tela.current!, cor, reduzido: reduzido(), interativo })
       p.aoFase((f) => fase.current?.(f))
+      p.aoTempo((f) => tempo.current?.(f))
       palco.current = p
       p.mostrar(exercicio, camera)
     } catch {
@@ -52,6 +57,9 @@ export default function Boneco3D({ exercicio, cor, camera, velocidade = 1, pausa
   }, [pausado])
   useEffect(() => palco.current?.musculos(musculos), [musculos])
   useEffect(() => palco.current?.cor(cor), [cor])
+  useEffect(() => {
+    if (instante !== null && instante !== undefined) palco.current?.instante(instante)
+  }, [instante, exercicio])
 
   const ex = EXERCICIO[exercicio]
   if (falhou)

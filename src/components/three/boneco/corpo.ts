@@ -1,4 +1,4 @@
-import { CapsuleGeometry, Color, Group, Mesh, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3, BoxGeometry, type BufferGeometry } from 'three'
+import { CapsuleGeometry, Color, Group, Mesh, MeshStandardMaterial, Quaternion, SphereGeometry, Vector3, type BufferGeometry } from 'three'
 import type { Musculo } from '../../../shared/exercicios.ts'
 import { PROPORCOES as P, type Articulacoes } from './esqueleto.ts'
 
@@ -92,11 +92,11 @@ export type Corpo = {
 
 export function criarCorpo(): Corpo {
   const grupo = new Group()
-  const pele = new MeshStandardMaterial({ color: '#d5d8dd', roughness: 0.58, metalness: 0.04 })
-  const junta = new MeshStandardMaterial({ color: '#9fa5ae', roughness: 0.5, metalness: 0.08 })
-  const musculoBase = new MeshStandardMaterial({ color: '#cbcfd5', roughness: 0.6, metalness: 0.03 })
-  const principal = new MeshStandardMaterial({ color: '#f5c518', roughness: 0.42, metalness: 0.05, emissive: new Color('#f5c518'), emissiveIntensity: 0.35 })
-  const secundario = new MeshStandardMaterial({ color: '#f5e2a0', roughness: 0.5, metalness: 0.04, emissive: new Color('#f5c518'), emissiveIntensity: 0.12 })
+  const pele = new MeshStandardMaterial({ color: '#c3c8d0', roughness: 0.52, metalness: 0.02 })
+  const junta = new MeshStandardMaterial({ color: '#7c838d', roughness: 0.45, metalness: 0.1 })
+  const musculoBase = new MeshStandardMaterial({ color: '#bcc1ca', roughness: 0.55, metalness: 0.02 })
+  const principal = new MeshStandardMaterial({ color: '#f5c518', roughness: 0.4, metalness: 0.02, emissive: new Color('#f5c518'), emissiveIntensity: 0.28 })
+  const secundario = new MeshStandardMaterial({ color: '#f5e2a0', roughness: 0.48, metalness: 0.02, emissive: new Color('#f5c518'), emissiveIntensity: 0.08 })
   const materiais = [pele, junta, musculoBase, principal, secundario]
   const geometrias: BufferGeometry[] = []
   const add = <T extends Mesh>(m: T) => {
@@ -124,12 +124,19 @@ export function criarCorpo(): Corpo {
   const canD = membro(0.052, P.canela)
   const esfera = (r: number) => add(elipsoide([r, r, r], junta, 10))
   const juntas = { ombroE: esfera(0.056), ombroD: esfera(0.056), cotE: esfera(0.042), cotD: esfera(0.042), punE: esfera(0.033), punD: esfera(0.033), joeE: esfera(0.058), joeD: esfera(0.058), torE: esfera(0.04), torD: esfera(0.04), quaE: esfera(0.07), quaD: esfera(0.07) }
-  const mao = () => add(new Mesh(new BoxGeometry(0.082, 0.1, 0.034), pele))
+  // a mão: uma luva achatada; o pé: uma cápsula deitada (do calcanhar à ponta)
+  const mao = () => {
+    const m = add(new Mesh(new CapsuleGeometry(0.041, 0.03, 4, 10), pele))
+    m.scale.z = 0.42
+    return m
+  }
   const maoE = mao()
   const maoD = mao()
   const pe = () => {
-    const m = add(new Mesh(new BoxGeometry(0.092, 0.06, P.pe), pele))
-    return m
+    const g = new CapsuleGeometry(0.046, P.pe - 0.092, 4, 12)
+    g.rotateX(Math.PI / 2)
+    g.scale(1, 0.68, 1)
+    return add(new Mesh(g, pele))
   }
   const peE = pe()
   const peD = pe()
@@ -233,7 +240,7 @@ export function criarCorpo(): Corpo {
     const c = new Color(cor)
     principal.color.copy(c)
     principal.emissive.copy(c)
-    secundario.color.copy(c).lerp(new Color('#ffffff'), 0.55)
+    secundario.color.copy(c).lerp(new Color('#ffffff'), 0.5)
     secundario.emissive.copy(c)
     for (const { d, malha } of musculos) {
       malha.material = !mostrar ? musculoBase : principais.includes(d.musculo) ? principal : secundarios.includes(d.musculo) ? secundario : musculoBase

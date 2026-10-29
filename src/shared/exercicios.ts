@@ -569,7 +569,7 @@ export const EXERCICIOS: Exercicio[] = [
     grupo: 'triceps',
     principais: ['triceps'],
     equipamento: ['polia'],
-    camera: 'frente',
+    camera: 'tres-quartos',
     passos: [
       'De frente para a polia alta, segure a corda com as palmas uma para a outra.',
       'Cotovelos colados ao corpo.',

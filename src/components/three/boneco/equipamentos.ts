@@ -37,7 +37,8 @@ export function materiais() {
     cromo: new MeshStandardMaterial({ color: '#e1e4e8', metalness: 1, roughness: 0.16 }),
     borracha: new MeshStandardMaterial({ color: '#1d1e22', metalness: 0.1, roughness: 0.75 }),
     estofado: new MeshStandardMaterial({ color: '#2a2c31', metalness: 0.05, roughness: 0.68 }),
-    estrutura: new MeshStandardMaterial({ color: '#4a4f58', metalness: 0.65, roughness: 0.38 }),
+    estrutura: new MeshStandardMaterial({ color: '#3f444d', metalness: 0.3, roughness: 0.58 }),
+    piso: new MeshStandardMaterial({ color: '#25282e', metalness: 0.08, roughness: 0.86 }), // as bases no chão
     cabo: new MeshStandardMaterial({ color: '#16171a', metalness: 0.3, roughness: 0.5 }),
     corda: new MeshStandardMaterial({ color: '#2b2f38', metalness: 0, roughness: 0.9 }),
     tapete: new MeshStandardMaterial({ color: '#3a4152', metalness: 0, roughness: 0.92 }),
@@ -71,6 +72,19 @@ function tubo(raio: number, a: Vector3, b: Vector3, mat: MeshStandardMaterial) {
 
 const meioDasMaos = (a: Articulacoes) => a.maoE.clone().add(a.maoD).multiplyScalar(0.5)
 
+// O que pode ficar na frente do boneco (as anilhas vistas de lado, a torre da polia) fica
+// transparente quando tapa o corpo: o palco cuida disso a cada quadro. A estrutura grande (a torre,
+// o suporte) também não entra no enquadramento: pode sair pela borda da tela.
+const afastavel = <T extends Mesh>(m: T) => {
+  m.userData.afastavel = true
+  return m
+}
+const estrutura = <T extends Mesh>(m: T) => {
+  m.userData.afastavel = true
+  m.userData.estrutura = true
+  return m
+}
+
 // Onde o pedal fica em relação ao tornozelo, no pé (embaixo da planta): os movimentos da bike usam
 // a mesma conta para pôr o pé no pedal
 export const PEDAL = new Vector3(0, -0.085, 0.09)
@@ -91,7 +105,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       add(cilindro(0.0135, 1.78, m.aco), barra).rotation.z = Math.PI / 2
       const n = e.anilhas ?? 2
       for (const s of [-1, 1]) {
-        const luva = add(cilindro(0.025, 0.32, m.cromo), barra)
+        const luva = afastavel(add(cilindro(0.025, 0.32, m.cromo), barra))
         luva.rotation.z = Math.PI / 2
         luva.position.x = s * 0.74
         const trava = add(cilindro(0.04, 0.03, m.aco), barra)
@@ -99,10 +113,10 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
         trava.position.x = s * 0.585
         for (let i = 0; i < n; i++) {
           const raio = n === 1 ? 0.16 : i === 0 ? 0.225 : 0.16
-          const anilha = add(cilindro(raio, 0.05, m.borracha, 28), barra)
+          const anilha = afastavel(add(cilindro(raio, 0.05, m.borracha, 28), barra))
           anilha.rotation.z = Math.PI / 2
           anilha.position.x = s * (0.63 + i * 0.055)
-          const aro = add(new Mesh(new TorusGeometry(raio - 0.025, 0.006, 6, 32), m.detalhe), barra)
+          const aro = afastavel(add(new Mesh(new TorusGeometry(raio - 0.025, 0.006, 6, 32), m.detalhe), barra))
           aro.rotation.y = Math.PI / 2
           aro.position.x = s * (0.63 + i * 0.055 + 0.026)
         }
@@ -210,7 +224,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       for (const z of [-comprimento * 0.4, comprimento * 0.4]) {
         const pe = add(caixa(0.06, 0.4, 0.06, m.estrutura))
         pe.position.set(0, 0.2, z)
-        const base = add(caixa(0.42, 0.04, 0.08, m.estrutura))
+        const base = add(caixa(0.42, 0.04, 0.08, m.piso))
         base.position.set(0, 0.02, z)
       }
       g.position.copy(v(e.em))
@@ -219,15 +233,16 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
     }
     case 'suporte': {
       for (const s of [-1, 1]) {
-        const montante = add(caixa(0.07, e.altura + 0.45, 0.07, m.estrutura))
+        const montante = estrutura(add(caixa(0.07, e.altura + 0.45, 0.07, m.estrutura)))
         montante.position.set(s * 0.56, (e.altura + 0.45) / 2, 0)
         const gancho = add(caixa(0.05, 0.05, 0.13, m.aco))
         gancho.position.set(s * 0.56, e.altura - 0.05, 0.08)
-        const base = add(caixa(0.09, 0.04, 0.7, m.estrutura))
+        const base = estrutura(add(caixa(0.09, 0.04, 0.7, m.piso)))
         base.position.set(s * 0.56, 0.02, 0)
       }
-      const travessa = add(caixa(1.2, 0.06, 0.06, m.estrutura))
+      const travessa = estrutura(add(caixa(1.2, 0.06, 0.06, m.estrutura)))
       travessa.position.set(0, e.altura + 0.42, 0)
+      g.traverse((o) => (o as Mesh).isMesh && estrutura(o as Mesh))
       g.position.copy(v(e.em))
       g.rotation.y = (e.giro ?? 0) * RAD
       return parado
@@ -236,11 +251,11 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       // a coluna da máquina, a roldana, o cabo até o pegador
       const roldana = v(e.em)
       const coluna = e.coluna ? v(e.coluna) : new Vector3(roldana.x, 0, roldana.z + 0.12)
-      const torre = add(caixa(0.16, 2.3, 0.16, m.estrutura))
+      const torre = estrutura(add(caixa(0.16, 2.3, 0.16, m.estrutura)))
       torre.position.set(coluna.x, 1.15, coluna.z)
-      const base = add(caixa(0.6, 0.05, 0.6, m.estrutura))
+      const base = estrutura(add(caixa(0.6, 0.05, 0.6, m.piso)))
       base.position.set(coluna.x, 0.025, coluna.z)
-      add(tubo(0.02, roldana, new Vector3(coluna.x, roldana.y, coluna.z), m.estrutura))
+      estrutura(add(tubo(0.02, roldana, new Vector3(coluna.x, roldana.y, coluna.z), m.estrutura)))
       const r = add(new Mesh(new TorusGeometry(0.05, 0.016, 8, 20), m.aco))
       r.position.copy(roldana)
       r.rotation.y = Math.PI / 2
@@ -279,13 +294,13 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
     case 'crossover': {
       const pontos = [v(e.e), v(e.d)]
       for (const p of pontos) {
-        const torre = add(caixa(0.16, 2.4, 0.16, m.estrutura))
+        const torre = estrutura(add(caixa(0.16, 2.4, 0.16, m.estrutura)))
         torre.position.set(p.x + Math.sign(p.x) * 0.12, 1.2, p.z)
         const r = add(new Mesh(new TorusGeometry(0.05, 0.016, 8, 20), m.aco))
         r.position.copy(p)
         add(tubo(0.02, p, new Vector3(p.x + Math.sign(p.x) * 0.12, p.y, p.z), m.estrutura))
       }
-      const topo = add(caixa(Math.abs(pontos[0].x - pontos[1].x) + 0.4, 0.1, 0.16, m.estrutura))
+      const topo = estrutura(add(caixa(Math.abs(pontos[0].x - pontos[1].x) + 0.4, 0.1, 0.16, m.estrutura)))
       topo.position.set((pontos[0].x + pontos[1].x) / 2, 2.4, pontos[0].z)
       const cabos = [add(cilindro(0.005, 1, m.cabo, 6)), add(cilindro(0.005, 1, m.cabo, 6))]
       const alcas = [add(new Mesh(new TorusGeometry(0.05, 0.01, 6, 16), m.cromo)), add(new Mesh(new TorusGeometry(0.05, 0.01, 6, 16), m.cromo))]
@@ -315,7 +330,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       }
       add(tubo(0.025, new Vector3(s.x, s.y, s.z + 0.15), new Vector3(s.x, s.y + 0.24, s.z + 0.3), m.estrutura))
       const r = v(e.roldana)
-      const torre = add(caixa(0.16, r.y + 0.15, 0.16, m.estrutura))
+      const torre = estrutura(add(caixa(0.16, r.y + 0.15, 0.16, m.estrutura)))
       torre.position.set(r.x, (r.y + 0.15) / 2, s.z - 0.55)
       add(tubo(0.03, new Vector3(r.x, r.y + 0.05, s.z - 0.55), new Vector3(r.x, r.y + 0.05, r.z), m.estrutura))
       const roldana = add(new Mesh(new TorusGeometry(0.05, 0.016, 8, 20), m.aco))
@@ -346,7 +361,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       const s = v(e.assento)
       const banco = add(caixa(0.36, 0.08, 1.0, m.estofado))
       banco.position.set(s.x, s.y, s.z + 0.15)
-      const viga = add(caixa(0.12, 0.08, 1.9, m.estrutura))
+      const viga = add(caixa(0.12, 0.08, 1.9, m.piso))
       viga.position.set(s.x, 0.04, s.z + 0.55)
       for (const z of [s.z - 0.25, s.z + 0.45]) {
         const pe = add(caixa(0.06, s.y, 0.06, m.estrutura))
@@ -357,7 +372,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       apoio.position.copy(ap)
       apoio.rotation.x = -0.35
       const r = v(e.roldana)
-      const torre = add(caixa(0.18, 2.1, 0.18, m.estrutura))
+      const torre = estrutura(add(caixa(0.18, 2.1, 0.18, m.estrutura)))
       torre.position.set(r.x, 1.05, r.z + 0.16)
       const roldana = add(new Mesh(new TorusGeometry(0.05, 0.016, 8, 20), m.aco))
       roldana.position.copy(r)
@@ -389,7 +404,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       assento.position.copy(q).add(new Vector3(0, -0.13, 0.1))
       assento.rotation.x = -0.25
       const trilho = new Vector3(0, Math.sin(e.trilho * RAD), Math.cos(e.trilho * RAD))
-      const base = add(caixa(0.8, 0.08, 2.0, m.estrutura))
+      const base = add(caixa(0.8, 0.08, 2.0, m.piso))
       base.position.set(q.x, 0.04, q.z + 0.55)
       const pe = add(caixa(0.5, q.y - 0.17, 0.12, m.estrutura))
       pe.position.set(q.x, (q.y - 0.17) / 2, q.z)
@@ -397,11 +412,11 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       g.add(plataforma)
       add(caixa(0.62, 0.62, 0.05, m.estrutura), plataforma)
       for (const s of [-1, 1]) {
-        const pino = add(cilindro(0.025, 0.24, m.aco), plataforma)
+        const pino = afastavel(add(cilindro(0.025, 0.24, m.aco), plataforma))
         pino.rotation.z = Math.PI / 2
         pino.position.set(s * 0.42, 0.05, -0.08)
         for (let i = 0; i < 2; i++) {
-          const anilha = add(cilindro(0.2, 0.04, m.borracha, 24), plataforma)
+          const anilha = afastavel(add(cilindro(0.2, 0.04, m.borracha, 24), plataforma))
           anilha.rotation.z = Math.PI / 2
           anilha.position.set(s * (0.36 + i * 0.05), 0.05, -0.08)
         }
@@ -455,7 +470,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       const eixoMaquina = add(cilindro(0.035, 0.12, m.aco))
       eixoMaquina.rotation.z = Math.PI / 2
       eixoMaquina.position.copy(pivo)
-      const torre = add(caixa(0.12, joelho.y, 0.12, m.estrutura))
+      const torre = estrutura(add(caixa(0.12, joelho.y, 0.12, m.estrutura)))
       torre.position.set(pivo.x + 0.08, joelho.y / 2, pivo.z)
       const alavanca = add(cilindro(0.02, 1, m.aco))
       const rolo = add(cilindro(0.05, 0.4, m.estofado))
@@ -481,9 +496,9 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       barra.rotation.z = Math.PI / 2
       barra.position.set(0, e.altura, z)
       for (const s of [-1, 1]) {
-        const coluna = add(caixa(0.07, e.altura + 0.1, 0.07, m.estrutura))
+        const coluna = estrutura(add(caixa(0.07, e.altura + 0.1, 0.07, m.estrutura)))
         coluna.position.set(s * 0.65, (e.altura + 0.1) / 2, z)
-        const base = add(caixa(0.09, 0.04, 0.9, m.estrutura))
+        const base = estrutura(add(caixa(0.09, 0.04, 0.9, m.piso)))
         base.position.set(s * 0.65, 0.02, z)
       }
       return parado
@@ -499,7 +514,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       assento.position.copy(as)
       add(tubo(0.035, new Vector3(as.x, 0, as.z), new Vector3(as.x, as.y, as.z), m.estrutura))
       add(tubo(0.035, new Vector3(ap.x, 0, ap.z + 0.15), new Vector3(ap.x, ap.y - 0.05, ap.z + 0.05), m.estrutura))
-      const base = add(caixa(0.5, 0.04, Math.abs(ap.z - as.z) + 0.5, m.estrutura))
+      const base = add(caixa(0.5, 0.04, Math.abs(ap.z - as.z) + 0.5, m.piso))
       base.position.set(as.x, 0.02, (ap.z + as.z) / 2)
       return parado
     }
@@ -515,18 +530,18 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       return parado
     }
     case 'esteira': {
-      const base = add(caixa(0.78, 0.16, 1.8, m.estrutura))
+      const base = add(caixa(0.78, 0.16, 1.8, m.piso))
       base.position.set(0, 0.08, 0.05)
       const lona = add(caixa(0.56, 0.02, 1.55, m.borracha))
       lona.position.set(0, 0.17, 0.05)
       for (const s of [-1, 1]) {
-        const coluna = add(caixa(0.05, 1.05, 0.05, m.estrutura))
+        const coluna = estrutura(add(caixa(0.05, 1.05, 0.05, m.estrutura)))
         coluna.position.set(s * 0.36, 0.6, 0.85)
         const corrimao = add(cilindro(0.02, 0.6, m.aco))
         corrimao.rotation.x = Math.PI / 2
         corrimao.position.set(s * 0.36, 1.1, 0.58)
       }
-      const painel = add(caixa(0.7, 0.2, 0.08, m.estrutura))
+      const painel = estrutura(add(caixa(0.7, 0.2, 0.08, m.estrutura)))
       painel.position.set(0, 1.18, 0.88)
       painel.rotation.x = -0.4
       return parado
@@ -547,7 +562,7 @@ export function criarEquipamento(e: Equip, m: Materiais, geometrias: BufferGeome
       volante.rotation.z = Math.PI / 2
       volante.position.set(c.x, 0.3, c.z + 0.38)
       add(tubo(0.03, new Vector3(c.x, 0.3, c.z + 0.38), new Vector3(c.x, 0.05, c.z + 0.45), m.estrutura))
-      const base = add(caixa(0.5, 0.05, 1.15, m.estrutura))
+      const base = add(caixa(0.5, 0.05, 1.15, m.piso))
       base.position.set(c.x, 0.025, c.z)
       const eixo = add(cilindro(0.04, 0.1, m.aco))
       eixo.rotation.z = Math.PI / 2

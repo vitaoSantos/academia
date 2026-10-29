@@ -1,5 +1,4 @@
 import {
-  ACESFilmicToneMapping,
   Box3,
   CanvasTexture,
   CircleGeometry,
@@ -7,14 +6,20 @@ import {
   MathUtils,
   Mesh,
   MeshBasicMaterial,
+  NeutralToneMapping,
+  Object3D,
   PerspectiveCamera,
   PlaneGeometry,
   PMREMGenerator,
+  Ray,
   Scene,
   SRGBColorSpace,
   Vector3,
   WebGLRenderer,
+  DirectionalLight,
+  HemisphereLight,
   type BufferGeometry,
+  type MeshStandardMaterial,
 } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
@@ -44,6 +49,8 @@ export type Palco = {
   musculos: (mostrar: boolean) => void
   cor: (c: string) => void
   aoFase: (f: ((fase: number) => void) | null) => void
+  aoTempo: (f: ((fracao: number) => void) | null) => void // quanto do ciclo já foi (a régua do laboratório)
+  instante: (fracao: number) => void // para o boneco num ponto do ciclo
   liberar: () => void
 }
 
@@ -57,6 +64,7 @@ const DIRECOES: Record<Camera, Vector3> = {
 }
 
 const FOV = 30
+const CIMA_MUNDO = new Vector3(0, 1, 0)
 
 // O chão: um disco claro no meio que some nas bordas, com um quadriculado fino (o piso da academia)
 function texturaDoChao() {
@@ -113,18 +121,36 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
   renderer.outputColorSpace = SRGBColorSpace
-  renderer.toneMapping = ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.05
+  // o tom neutro não lava a cor da marca (o amarelo continua amarelo)
+  renderer.toneMapping = NeutralToneMapping
+  renderer.toneMappingExposure = 1
   renderer.setClearColor(0x000000, 0)
 
   const cena = new Scene()
   const pmrem = new PMREMGenerator(renderer)
   const ambiente = new RoomEnvironment()
   cena.environment = pmrem.fromScene(ambiente, 0.04).texture
-  cena.environmentIntensity = 0.95
+  cena.environmentIntensity = 0.42
   ambiente.traverse((o) => (o as Mesh).geometry?.dispose())
 
+  // a luz anda com a câmera: de qualquer lado que se olhe, o boneco tem a luz principal do alto à
+  // esquerda (o volume dos músculos aparece) e o contorno de trás o separa do fundo escuro
   const camera = new PerspectiveCamera(FOV, 1, 0.05, 60)
+  cena.add(camera)
+  const mira = new Object3D()
+  mira.position.set(0, 0, -4)
+  camera.add(mira)
+  const principal = new DirectionalLight('#fff4e6', 2.3)
+  principal.position.set(-2.2, 2.6, 0.6)
+  principal.target = mira
+  const preenche = new DirectionalLight('#d7e4ff', 0.55)
+  preenche.position.set(2.6, 0.4, 0.4)
+  preenche.target = mira
+  const contorno = new DirectionalLight('#ffffff', 1.5)
+  contorno.position.set(0.8, 2.4, -7.5)
+  contorno.target = mira
+  camera.add(principal, preenche, contorno)
+  cena.add(new HemisphereLight('#ffffff', '#2a2c33', 0.35))
   const controles = new OrbitControls(camera, canvas)
   controles.enableDamping = true
   controles.dampingFactor = 0.08
@@ -157,6 +183,10 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
   let geometriasEquip: BufferGeometry[] = []
   const grupoEquip = new Group()
   cena.add(grupoEquip)
+  // as peças que ficam transparentes quando tapam o corpo (cada uma com o material dela)
+  let afastaveis: { malha: Mesh; material: MeshStandardMaterial; opacidade: number }[] = []
+  // os pontos do corpo que não podem sumir atrás do equipamento
+  const alvos = Array.from({ length: 6 }, () => new Vector3())
 
   const estado = {
     id: '',
@@ -175,6 +205,7 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
     deAlvo: new Vector3(),
     paraCamera: new Vector3(),
     aoFase: null as ((f: number) => void) | null,
+    aoTempo: null as ((f: number) => void) | null,
     visivel: true,
     ultimo: performance.now(),
     precisa: true, // desenhar o próximo quadro mesmo parado
@@ -183,6 +214,12 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
   function posicionar(a: Articulacoes) {
     corpo.atualizar(a)
     for (const p of pecas) p.atualizar(a, corpo.maos)
+    alvos[0].copy(a.quadril).add(a.pescoco).multiplyScalar(0.5)
+    alvos[1].copy(a.cabeca)
+    alvos[2].copy(a.maoE)
+    alvos[3].copy(a.maoD)
+    alvos[4].copy(a.joelhoE)
+    alvos[5].copy(a.joelhoD)
     // a sombra embaixo do que o corpo ocupa no chão
     let x0 = Infinity
     let x1 = -Infinity
@@ -200,42 +237,103 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
     sombra.scale.set(x1 - x0 + 0.7, z1 - z0 + 0.7, 1)
   }
 
-  // A caixa do movimento inteiro: o corpo em várias fases e o equipamento
-  function enquadrar(mov: Movimento) {
-    const caixa = estado.caixa.makeEmpty()
-    const raio = new Vector3(0.12, 0.12, 0.12)
-    for (let i = 0; i < 16; i++) {
-      const a = resolver(mov.pose((i / 16) * mov.periodo))
-      for (const k of PONTOS_DO_CORPO) {
-        const v = a[k] as Vector3
-        caixa.expandByPoint(v.clone().add(raio))
-        caixa.expandByPoint(v.clone().sub(raio))
+  // O que está entre a câmera e o corpo (a anilha vista de lado, a torre da polia vista de frente)
+  // fica quase transparente, aos poucos; devolve se ainda está mudando
+  const raio = new Ray()
+  const caixaPeca = new Box3()
+  const batida = new Vector3()
+  function afastar(dt: number) {
+    if (!afastaveis.length) return false
+    grupoEquip.updateMatrixWorld()
+    let mudando = false
+    for (const p of afastaveis) {
+      caixaPeca.setFromObject(p.malha).expandByScalar(0.03)
+      let tapa = false
+      for (const alvo of alvos) {
+        const ate = camera.position.distanceTo(alvo)
+        raio.origin.copy(camera.position)
+        raio.direction.copy(alvo).sub(camera.position).normalize()
+        if (raio.intersectBox(caixaPeca, batida) && batida.distanceTo(camera.position) < ate - 0.08) {
+          tapa = true
+          break
+        }
       }
-      posicionar(a)
-      grupoEquip.updateMatrixWorld(true)
-      // as máquinas grandes (a torre da polia) entram só um pouco: o que importa é o corpo
-      const equip = new Box3().setFromObject(grupoEquip)
-      if (!equip.isEmpty()) {
-        equip.max.y = Math.min(equip.max.y, caixa.max.y + 0.25)
-        caixa.union(equip)
-      }
+      const meta = tapa ? 0.14 : 1
+      const nova = dt > 0 ? p.opacidade + (meta - p.opacidade) * Math.min(1, dt * 7) : meta
+      p.opacidade = Math.abs(nova - meta) < 0.01 ? meta : nova
+      if (p.opacidade !== meta) mudando = true
+      p.material.opacity = p.opacidade
+      p.material.depthWrite = p.opacidade > 0.98
     }
-    caixa.min.y = Math.max(0, caixa.min.y)
+    return mudando
   }
 
-  // Afasta a câmera até a caixa caber (na altura e na largura da tela)
+  // Os pontos que precisam aparecer durante o movimento inteiro: as articulações (com a grossura do
+  // corpo) em várias fases e cada peça do equipamento que se mexe ou fica perto (a estrutura grande,
+  // como a torre da polia, pode sair pela borda)
+  const pontos: Vector3[] = []
+  function enquadrar(mov: Movimento) {
+    pontos.length = 0
+    const caixa = estado.caixa.makeEmpty()
+    const pecaCaixa = new Box3()
+    const folga = [new Vector3(0.11, 0, 0), new Vector3(-0.11, 0, 0), new Vector3(0, 0.12, 0), new Vector3(0, -0.06, 0), new Vector3(0, 0, 0.11), new Vector3(0, 0, -0.11)]
+    for (let i = 0; i < 16; i++) {
+      const a = resolver(mov.pose((i / 16) * mov.periodo))
+      for (const k of PONTOS_DO_CORPO) for (const f of folga) pontos.push((a[k] as Vector3).clone().add(f))
+      posicionar(a)
+      grupoEquip.updateMatrixWorld(true)
+      grupoEquip.traverse((o) => {
+        const m = o as Mesh
+        if (!m.isMesh || m.userData.estrutura) return
+        pecaCaixa.setFromObject(m)
+        for (let c = 0; c < 8; c++) pontos.push(new Vector3(c & 1 ? pecaCaixa.max.x : pecaCaixa.min.x, c & 2 ? pecaCaixa.max.y : pecaCaixa.min.y, c & 4 ? pecaCaixa.max.z : pecaCaixa.min.z))
+      })
+    }
+    for (const p of pontos) {
+      p.y = Math.max(0, p.y)
+      caixa.expandByPoint(p)
+    }
+  }
+
+  // Afasta a câmera até todos os pontos caberem na tela, com folga em cima e embaixo (onde ficam as
+  // etiquetas e o ponto de atenção): cada ponto pede uma distância, vale a maior. A mira fica no
+  // meio do que aparece, visto daquele lado.
   function distanciaPara(vista: Camera) {
-    const tamanho = estado.caixa.getSize(new Vector3())
-    const centro = estado.caixa.getCenter(new Vector3())
-    const aspecto = camera.aspect || 1
-    const tanV = Math.tan(MathUtils.degToRad(FOV / 2))
-    const tanH = tanV * aspecto
-    // o raio que a caixa ocupa vista daquele lado (uma conta simples, com folga)
     const dir = DIRECOES[vista].clone().normalize()
-    const largura = Math.abs(dir.z) * tamanho.x + Math.abs(dir.x) * tamanho.z + 0.2
-    const altura = tamanho.y * (1 - Math.abs(dir.y) * 0.35) + Math.abs(dir.y) * Math.max(tamanho.x, tamanho.z) * 0.6 + 0.2
-    const d = Math.max(altura / 2 / tanV, largura / 2 / tanH) + Math.max(tamanho.x, tamanho.z) * 0.3
-    return { d: Math.max(2.2, d * 1.04), centro }
+    const direita = new Vector3().crossVectors(dir.clone().negate(), CIMA_MUNDO).normalize()
+    const cima = new Vector3().crossVectors(direita, dir.clone().negate()).normalize()
+    // o meio na tela: o centro dos pontos projetados naquele plano
+    let x0 = Infinity
+    let x1 = -Infinity
+    let y0 = Infinity
+    let y1 = -Infinity
+    const base = estado.caixa.getCenter(new Vector3())
+    const v = new Vector3()
+    for (const p of pontos) {
+      v.copy(p).sub(base)
+      const x = v.dot(direita)
+      const y = v.dot(cima)
+      x0 = Math.min(x0, x)
+      x1 = Math.max(x1, x)
+      y0 = Math.min(y0, y)
+      y1 = Math.max(y1, y)
+    }
+    const centro = base.clone().addScaledVector(direita, (x0 + x1) / 2).addScaledVector(cima, (y0 + y1) / 2)
+    // em cima sobra pouco; embaixo sobra mais (é onde aparece o ponto de atenção)
+    const tan = Math.tan(MathUtils.degToRad(FOV / 2))
+    const tanCima = tan * 0.9
+    const tanBaixo = tan * 0.7
+    const tanH = tan * (camera.aspect || 1) * 0.9
+    // a mira desce o tanto que o espaço de baixo pede a mais, para o corpo ficar centrado no que sobra
+    centro.addScaledVector(cima, ((y1 - y0) / 2) * ((tanBaixo - tanCima) / (tanCima + tanBaixo)))
+    let d = 0
+    for (const p of pontos) {
+      v.copy(p).sub(centro)
+      const z = v.dot(dir)
+      const y = v.dot(cima)
+      d = Math.max(d, z + Math.abs(v.dot(direita)) / tanH, z + Math.abs(y) / (y > 0 ? tanCima : tanBaixo))
+    }
+    return { d: Math.max(1.6, d), centro }
   }
 
   function irPara(vista: Camera, voar: boolean) {
@@ -263,10 +361,20 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
     if (!mov || !ex) return
     // o equipamento do exercício anterior sai
     for (const g of geometriasEquip) g.dispose()
+    for (const p of afastaveis) p.material.dispose()
     grupoEquip.clear()
     geometriasEquip = []
     pecas = mov.equip.map((e) => criarEquipamento(e, mats, geometriasEquip))
     for (const p of pecas) grupoEquip.add(p.grupo)
+    afastaveis = []
+    grupoEquip.traverse((o) => {
+      const m = o as Mesh
+      if (!m.isMesh || !m.userData.afastavel) return
+      const material = (m.material as MeshStandardMaterial).clone()
+      material.transparent = true
+      m.material = material
+      afastaveis.push({ malha: m, material, opacidade: 1 })
+    })
     estado.id = id
     estado.mov = mov
     estado.relogio = 0
@@ -274,6 +382,7 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
     enquadrar(mov)
     posicionar(resolver(estado.pausado ? mov.parada : mov.pose(0)))
     irPara(vista ?? ex.camera, false)
+    afastar(0)
   }
 
   function tamanho() {
@@ -317,13 +426,14 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
   function desenhar(agora: number) {
     quadro = 0
     if (!estado.visivel || document.hidden) return
-    const dt = Math.min(0.05, (agora - estado.ultimo) / 1000)
+    const dt = Math.max(0, Math.min(0.05, (agora - estado.ultimo) / 1000))
     estado.ultimo = agora
     const mov = estado.mov
     if (mov && !estado.pausado) {
       estado.relogio += dt * estado.velocidade
       posicionar(resolver(mov.pose(estado.relogio)))
       estado.aoFase?.(mov.fase(estado.relogio))
+      estado.aoTempo?.((((estado.relogio / mov.periodo) % 1) + 1) % 1)
     }
     if (estado.voando > 0) {
       estado.voando = Math.max(0, estado.voando - dt / 0.7)
@@ -333,10 +443,11 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
       controles.target.lerpVectors(estado.deAlvo, estado.alvo, k)
     }
     const amortecendo = controles.update(dt)
+    const sumindo = afastar(dt)
     renderer.render(cena, camera)
     estado.precisa = false
-    // continua enquanto anima, a câmera voa ou o giro do dedo ainda escorrega
-    if ((mov && !estado.pausado) || estado.voando > 0 || amortecendo) acordar()
+    // continua enquanto anima, a câmera voa, o giro do dedo ainda escorrega ou uma peça está sumindo
+    if ((mov && !estado.pausado) || estado.voando > 0 || amortecendo || sumindo) acordar()
   }
 
   return {
@@ -373,6 +484,18 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
     aoFase: (f) => {
       estado.aoFase = f
     },
+    aoTempo: (f) => {
+      estado.aoTempo = f
+    },
+    instante: (fracao) => {
+      const mov = estado.mov
+      if (!mov) return
+      estado.pausado = true
+      estado.relogio = Math.min(0.9999, Math.max(0, fracao)) * mov.periodo
+      posicionar(resolver(mov.pose(estado.relogio)))
+      estado.aoFase?.(mov.fase(estado.relogio))
+      mexeu()
+    },
     liberar: () => {
       cancelAnimationFrame(quadro)
       observador.disconnect()
@@ -380,6 +503,7 @@ export function criarPalco({ canvas, cor, reduzido, interativo = true }: OpcoesP
       document.removeEventListener('visibilitychange', acordar)
       controles.dispose()
       for (const g of geometriasEquip) g.dispose()
+      for (const p of afastaveis) p.material.dispose()
       for (const m of Object.values(mats)) m.dispose()
       corpo.liberar()
       chao.geometry.dispose()

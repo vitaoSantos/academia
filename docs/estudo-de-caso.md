@@ -73,7 +73,7 @@ prato montado em 3D**). As contas estão na seção 20.
 | R19 | Aluno controla as próprias medidas e o peso | ✅ (dado sensível na LGPD, seção 12) | ✅ |
 | R20 | Rede social como o GymRats: interagir, marcar academias e profissionais | ✅ | ✅ "treino pago", desafios, curtir, comentar, seguir |
 | R21 | Chat usuário × profissional, usuário × empresa, empresa × professor (e entre usuários) | ✅ | ✅ com as regras da seção 17 |
-| R22 | Exibição 3D de cada exercício (o boneco fazendo o supino reto do jeito certo) | ✅ seção 11 | ✅ 40 exercícios com boneco 3D |
+| R22 | Exibição 3D de cada exercício (o boneco fazendo o supino reto do jeito certo) | ✅ seção 11 | ✅ 43 exercícios com boneco 3D |
 | R23 | Landing comercial com duas camadas (usuário pela localização; cadastro de todos) | ✅ | ✅ |
 | R24 | Planos por assinatura mensal, um básico e um premium de cada | ✅ | ✅ (sem cobrança, como nos outros protótipos) |
 | R25 | Destaque na plataforma para quem é premium (empresa, personal, até o usuário) | ✅ regras na seção 20.2 | ✅ |
@@ -369,7 +369,7 @@ todos os exercícios, a troca de câmera, a velocidade e os músculos.
   tela, resolução limitada no celular e uma sombra simples no chão; com "movimento reduzido" no
   sistema, o boneco fica parado na posição mais importante.
 
-**Os 40 exercícios do protótipo** (`src/shared/exercicios.ts`):
+**Os 43 exercícios do protótipo** (`src/shared/exercicios.ts`):
 
 | Grupo | Exercícios |
 |---|---|
@@ -658,7 +658,7 @@ para essa troca ser localizada.
 
 | Fase | Entrega |
 |---|---|
-| **1. Protótipo (este)** | Landing com as duas camadas e o 3D; explorar com mapa e raio; páginas da academia e do personal com a marca; contas com os papéis e o perfil público; fichas com data de previsão, modelos e cópia; treino ao vivo; medidas; agenda; modalidades com grade, reserva, lista de espera, lugar marcado, aula experimental, faixas e eventos; avaliações; rede com "treino pago", desafios e seguir; chat; painéis da academia e do profissional; admin; 40 exercícios em 3D |
+| **1. Protótipo (este)** | Landing com as duas camadas e o 3D; explorar com mapa e raio; páginas da academia e do personal com a marca; contas com os papéis e o perfil público; fichas com data de previsão, modelos e cópia; treino ao vivo; medidas; agenda; modalidades com grade, reserva, lista de espera, lugar marcado, aula experimental, faixas e eventos; avaliações; rede com "treino pago", desafios e seguir; chat; painéis da academia e do profissional; admin; 43 exercícios em 3D |
 | **2. Produto pago** | Cobrança das assinaturas (Pix e cartão recorrente); push no celular; **nutrição** com o prato 3D; o professor grava e vira 3D; importar alunos por planilha; integração com Wellhub/TotalPass e com os sistemas de gestão; conferência do CREF; dependentes (as aulas kids na conta do responsável) |
 | **3. Crescimento** | Postgres com PostGIS; app nas lojas; nutricionista; a câmera que confere a postura; boneco realista; relatórios da rede; marketplace de planos de treino |
 
@@ -671,7 +671,7 @@ para essa troca ser localizada.
 | # | Pergunta | Decisão |
 |---|---|---|
 | 1 | Base | A mesma dos outros projetos (Vite, React, Tailwind, three.js, Netlify Functions e Blobs) e o MapLibre da Mão Dupla |
-| 2 | O 3D | Boneco feito em código com o movimento descrito pela biomecânica (seção 11), 40 exercícios no protótipo |
+| 2 | O 3D | Boneco feito em código com o movimento descrito pela biomecânica (seção 11), 43 exercícios no protótipo |
 | 3 | Região | 50 km por padrão, com 10, 25 e 100; cidade do IBGE ou GPS |
 | 4 | Perfil público | Empresa sempre; os outros escolhem e mudam quando quiserem |
 | 5 | Chat entre usuários | Entra, com o seguir mútuo |
@@ -686,7 +686,7 @@ para essa troca ser localizada.
    de onde treinou), **Bora** e **Treino Pago** (o nome do check-in).
 2. **Preços:** os da seção 20, principalmente o Academia Básico (R$ 149 por unidade) e o Turma+
    (R$ 12,90).
-3. **Revisão dos movimentos:** quem revisa os 40 exercícios em 3D antes de publicar (um profissional
+3. **Revisão dos movimentos:** quem revisa os 43 exercícios em 3D antes de publicar (um profissional
    de educação física com CREF).
 4. **CONFEF 542/2024:** confirmar a regra da prescrição à distância (o prazo de 30 dias) com o CREF-MG.
 5. **Cobrança:** a empresa de pagamento (Asaas, Mercado Pago, Efí, Stripe) e se o personal vai querer
