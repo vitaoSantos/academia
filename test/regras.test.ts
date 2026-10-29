@@ -12,7 +12,7 @@ import { MODALIDADES } from '../src/shared/modalidades.ts'
 import { limiteAlunosPersonal, mensalidadeEmpresa, PLATAFORMA_PADRAO } from '../src/shared/planos.ts'
 import { ORDEM_TEMAS, temaDe } from '../src/shared/temas.ts'
 import { instante, somarDias } from '../src/shared/tempo.ts'
-import { identificador, normalizarCref, temTelefone } from '../src/shared/texto.ts'
+import { centavosDe, identificador, normalizarCref, temTelefone } from '../src/shared/texto.ts'
 import { forcaEstimada, recordes, sequencia, volume } from '../src/shared/treino.ts'
 
 // As regras puras, iguais no navegador e no servidor
@@ -146,4 +146,9 @@ test('os textos: login por e-mail ou celular, CREF e telefone no meio do texto',
   assert.equal(normalizarCref('123'), '')
   assert.ok(temTelefone('me chama 35 99876-1234'))
   assert.ok(!temTelefone('3x12 com 40kg e 20min de esteira'))
+  assert.equal(centavosDe('119,90'), 11990)
+  assert.equal(centavosDe('1.299,90'), 129990)
+  assert.equal(centavosDe('R$ 120'), 12000)
+  assert.equal(centavosDe('79.9'), 7990)
+  assert.equal(centavosDe(''), 0)
 })

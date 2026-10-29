@@ -216,7 +216,7 @@ function Conteudo({ d, recarregar, definir }: { d: PerfilPessoa; recarregar: () 
                         const faixa = faixaDe(sistema, f.faixa)
                         return (
                           <li key={`${f.empresa}:${f.modalidade}`} className="flex items-center gap-3">
-                            <Faixa cor={faixa?.cor ?? '#888'} graus={f.graus} />
+                            <Faixa cor={faixa?.cor ?? '#888'} ponta={faixa?.ponta} graus={f.graus} />
                             <span className="text-sm">
                               <span className="font-semibold">{nomeModalidade(f.modalidade)}</span>
                               <span className="block text-xs text-suave">{textoFaixa(faixa, f.graus)}</span>

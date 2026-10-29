@@ -12,7 +12,7 @@ import { visualNovo } from '../lib/aparencia.ts'
 import { avisarSemFalhar } from '../lib/avisos.ts'
 import { lerAvaliacoes } from '../lib/avaliacoes.ts'
 import { lerConta, mudarConta, resumos } from '../lib/contas.ts'
-import { exigirEquipe, mudarEmpresa, nomeDaUnidade, PODE } from '../lib/empresas.ts'
+import { exigirEquipe, mudarEmpresa, PODE } from '../lib/empresas.ts'
 import { lerExperimentais, lerFolha } from '../lib/grade.ts'
 import { falhar, json, lerCorpo, limitar, rotas, type Corpo } from '../lib/http.ts'
 import { alunoParaProfissional } from '../lib/painelAluno.ts'
@@ -40,7 +40,7 @@ async function visao(e: Empresa): Promise<VisaoDaEmpresa> {
   const ocupacao: VisaoDaEmpresa['ocupacao'] = []
   for (const u of e.unidades.filter((x) => x.ativa)) {
     const folha = await lerFolha(e.slug, u.id, dia)
-    for (const a of aulasDoDia(e.grade, u.id, dia).filter((x) => x.reserva && x.vagas)) ocupacao.push({ aula: a.id, modalidade: a.modalidade, unidade: nomeDaUnidade(e, u.id), inicio: a.inicio, reservas: folha[a.id]?.reservas.length ?? 0, vagas: a.vagas })
+    for (const a of aulasDoDia(e.grade, u.id, dia).filter((x) => x.reserva && x.vagas)) ocupacao.push({ aula: a.id, modalidade: a.modalidade, unidade: u.nome, inicio: a.inicio, reservas: folha[a.id]?.reservas.length ?? 0, vagas: a.vagas })
   }
   return {
     alunos: { ativos: ativos.length, pendentes: alunos.filter((a) => a.status === 'pendente').length, sumidos: ativos.filter((a) => !a.ultimoTreino || diasEntre(dataDe(a.ultimoTreino), dia) > SUMIDO).length, limite: Number.isFinite(limite) ? limite : null },
@@ -180,7 +180,7 @@ async function acao(corpo: Corpo, req: Request) {
           ...(corpo.precoDesde !== undefined ? { precoDesde: preco > 0 ? preco : undefined } : {}),
           ...(Array.isArray(corpo.niveis) ? { niveis: corpo.niveis.map((n) => limpar(n, 30)).filter(Boolean).slice(0, 8) } : {}),
           ...(Array.isArray(corpo.publicos) ? { publicos: corpo.publicos.map((n) => limpar(n, 30)).filter(Boolean).slice(0, 6) } : {}),
-          ...(corpo.graduacao !== undefined ? { graduacao: graduacaoDe(corpo.graduacao, atual.graduacao) } : {}),
+          ...(corpo.graduacao !== undefined ? { graduacao: corpo.graduacao === null ? undefined : graduacaoDe(corpo.graduacao, atual.graduacao) } : {}),
         }
         return { ...e, modalidades: e.modalidades.some((m) => m.id === id) ? e.modalidades.map((m) => (m.id === id ? nova : m)) : [...e.modalidades, nova] }
       })
@@ -201,7 +201,8 @@ async function acao(corpo: Corpo, req: Request) {
       return mudarEmpresa(slug, (e) => ({ ...e, grade: e.grade.filter((a) => a.id !== corpo.id) }))
     }
     case 'evento': {
-      await exigirEquipe(req, slug, PODE.configurar)
+      const { empresa } = await exigirEquipe(req, slug, PODE.configurar)
+      if (nivelEmpresa(empresa) !== 'premium') falhar(402, 'Os eventos são do plano Premium da academia.')
       const ev = (corpo.evento ?? {}) as Record<string, unknown>
       const titulo = limpar(ev.titulo, 60)
       const data = typeof ev.data === 'string' && DATA.test(ev.data) ? ev.data : ''
@@ -225,8 +226,14 @@ async function acao(corpo: Corpo, req: Request) {
     }
     case 'plano': {
       // no protótipo a assinatura é simulada: o plano muda na hora
-      await exigirEquipe(req, slug, ['dono'])
+      const { empresa } = await exigirEquipe(req, slug, ['dono'])
       const plano = corpo.plano === 'basico' ? 'basico' : 'premium'
+      if (plano === 'basico') {
+        const config = await lerPlataforma()
+        const limite = config.limites.alunosAcademiaBasico * Math.max(1, empresa.unidades.filter((u) => u.ativa).length)
+        const ativos = (await lerAlunos({ tipo: 'empresa', id: slug })).filter((a) => a.status === 'ativo').length
+        if (ativos > limite) falhar(409, `A academia tem ${ativos} alunos ativos e o Básico vai até ${limite}. Fique no Premium ou abra outra unidade.`)
+      }
       return mudarEmpresa(slug, (e) => ({ ...e, plano, planoDepois: plano, status: 'ativa', testeAte: e.status === 'teste' ? e.testeAte : undefined }))
     }
     case 'equipe': {

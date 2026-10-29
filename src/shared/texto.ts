@@ -91,6 +91,13 @@ export function formatarPreco(centavos: number) {
 
 export const reais = (centavos: number) => (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+// O que a pessoa digitou ("119,90", "1.299,90", "120") em centavos; 0 quando não dá para ler
+export function centavosDe(texto: string) {
+  const t = texto.trim().replace(/[^\d,.]/g, '')
+  const n = parseFloat(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t)
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0
+}
+
 export function formatarDuracao(min: number) {
   if (min < 60) return `${Math.round(min)} min`
   const h = Math.floor(min / 60)

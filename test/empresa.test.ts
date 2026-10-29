@@ -5,6 +5,7 @@ import explorar from '../netlify/functions/explorar.mts'
 import pagina from '../netlify/functions/pagina.mts'
 import painel from '../netlify/functions/painel.mts'
 import sessao from '../netlify/functions/sessao.mts'
+import { hoje, somarDias } from '../src/shared/tempo.ts'
 import { gravarJSON, usarArmazem, CHAVES, type Armazem } from '../netlify/lib/store.ts'
 import { CAXAMBU, Navegador, novaConta, pendentes, POCOS, SL } from './ajuda.ts'
 import { LojaMemoria } from './memoria.ts'
@@ -152,4 +153,34 @@ test('a graduação: o professor gradua e a faixa vai para o histórico do aluno
   assert.deepEqual(faixas.map((f: { faixa: string; graus: number }) => `${f.faixa}:${f.graus}`), ['branca:0', 'branca:1'])
   const semFaixa = await dona.chamar(painel, 'POST', '/p', { slug, acao: 'graduar', aluno: ana.id, modalidade: 'spinning' })
   assert.equal(semFaixa.status, 400)
+})
+
+test('o que é do Premium: no Básico não tem evento; e com alunos demais o Básico não cabe', async () => {
+  const evento = { titulo: 'Aulão de sábado', data: somarDias(hoje(), 3), inicio: '09:00' }
+  const noBasico = await dona.chamar(painel, 'POST', '/p', { slug, acao: 'evento', evento })
+  assert.equal(noBasico.status, 402)
+  await dona.chamar(painel, 'POST', '/p', { slug, acao: 'plano', plano: 'premium' })
+  const noPremium = await dona.chamar(painel, 'POST', '/p', { slug, acao: 'evento', evento })
+  assert.equal(noPremium.status, 200, JSON.stringify(noPremium.dados))
+  assert.equal(noPremium.dados.empresa.eventos.length, 1)
+  // o limite baixo: os alunos ativos passam do que o Básico aceita
+  await gravarJSON(CHAVES.plataforma, { limites: { alunosAcademiaBasico: 0 } })
+  const descer = await dona.chamar(painel, 'POST', '/p', { slug, acao: 'plano', plano: 'basico' })
+  assert.equal(descer.status, 409, JSON.stringify(descer.dados))
+  await gravarJSON(CHAVES.plataforma, {})
+})
+
+test('as faixas da academia: a lista dela (as kids seguem o padrão) e, se quiser, sem faixas', async () => {
+  const propria = await dona.chamar(painel, 'POST', '/p', {
+    slug,
+    acao: 'modalidade',
+    id: 'jiu-jitsu',
+    graduacao: { nome: 'Faixas do CT', faixas: [{ id: 'branca', nome: 'Branca', cor: '#f2f1ec' }, { id: 'azul', nome: 'Azul', cor: '#1f4fd8', graus: 4 }, { id: 'ruim', nome: 'Sem cor', cor: 'azul' }] },
+  })
+  const jj = propria.dados.empresa.modalidades.find((m: { id: string }) => m.id === 'jiu-jitsu')
+  assert.equal(jj.graduacao.nome, 'Faixas do CT')
+  assert.deepEqual(jj.graduacao.faixas.map((f: { id: string }) => f.id), ['branca', 'azul'], 'a cor inválida fica de fora')
+  assert.ok(jj.graduacao.kids.length > 0)
+  const sem = await dona.chamar(painel, 'POST', '/p', { slug, acao: 'modalidade', id: 'jiu-jitsu', graduacao: null })
+  assert.equal(sem.dados.empresa.modalidades.find((m: { id: string }) => m.id === 'jiu-jitsu').graduacao, undefined)
 })

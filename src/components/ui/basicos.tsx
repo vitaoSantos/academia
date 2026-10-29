@@ -114,9 +114,14 @@ export function Folha({
   semFechar?: boolean
 }) {
   const caixa = useRef<HTMLDivElement>(null)
+  // o último aoFechar, para o foco não pular a cada render de quem passa uma função nova
+  const fechar = useRef(aoFechar)
+  useEffect(() => {
+    fechar.current = aoFechar
+  })
   useEffect(() => {
     if (!aberta) return
-    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && aoFechar()
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && fechar.current()
     window.addEventListener('keydown', tecla)
     const rolagem = document.documentElement.style.overflow
     document.documentElement.style.overflow = 'hidden'
@@ -125,7 +130,7 @@ export function Folha({
       window.removeEventListener('keydown', tecla)
       document.documentElement.style.overflow = rolagem
     }
-  }, [aberta, aoFechar])
+  }, [aberta])
   if (!aberta) return null
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={titulo} data-lenis-prevent>

@@ -48,6 +48,7 @@ const ProFichas = lazy(() => import('./pro/Fichas'))
 const ProEditarFicha = lazy(() => import('./pro/EditarFicha'))
 const ProAgenda = lazy(() => import('./pro/Agenda'))
 const ProPerfil = lazy(() => import('./pro/Perfil'))
+const Painel = lazy(() => import('./painel/Painel'))
 
 function Carregando() {
   return (
@@ -71,7 +72,7 @@ function telaDoPro(segunda?: string, terceira?: string): ReactNode {
 
 function Tela() {
   const { caminho } = useEndereco()
-  const [primeira, segunda, terceira] = caminho.split('/').filter(Boolean).map(decodeURIComponent)
+  const [primeira, segunda, terceira, quarta] = caminho.split('/').filter(Boolean).map(decodeURIComponent)
 
   // o app do aluno
   const aluno: Record<string, () => ReactNode> = {
@@ -96,6 +97,7 @@ function Tela() {
   else if (primeira === 'rede') tela = !segunda ? <Rede /> : segunda === 'pedidos' ? <Pedidos /> : segunda === 'p' && terceira ? <Post key={terceira} id={terceira} /> : <NaoEncontrada />
   else if (primeira === 'mensagens') tela = segunda ? <Conversa key={segunda} id={segunda} /> : <Mensagens />
   else if (primeira === 'pro') tela = telaDoPro(segunda, terceira)
+  else if (primeira === 'painel' && segunda && slugValido(segunda.toLowerCase())) tela = <Painel key={segunda} slug={segunda.toLowerCase()} secao={terceira} id={quarta} />
   else if (primeira === 'lab') tela = <Lab inicial={segunda} />
   else if (primeira === 'explorar') tela = <Explorar />
   else if (caminho === '/entrar') tela = <Entrar />

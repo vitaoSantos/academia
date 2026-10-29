@@ -29,7 +29,7 @@ export function AlunoDetalhe({
 }: {
   d: AlunoParaOProfissional
   linkFicha: (id: string) => string
-  linkNovaFicha?: (c: AlunoParaOProfissional['contextos'][number]) => string
+  linkNovaFicha?: (c: AlunoParaOProfissional['contextos'][number]) => string | null // null: não monta nesse contexto
   sistemas?: Record<string, SistemaGraduacao | undefined> // as faixas que a academia usa
   acoesFaixa?: (modalidade: string) => ReactNode
   topo?: ReactNode
@@ -73,11 +73,14 @@ export function AlunoDetalhe({
             <PiChatCircleDots /> Conversar
           </button>
           {linkNovaFicha &&
-            d.contextos.map((c) => (
-              <Link key={`${c.tipo}:${c.id}`} para={linkNovaFicha(c)} className="btn btn-anilha btn-m">
-                <PiPlus /> Ficha{d.contextos.length > 1 ? ` · ${c.tipo === 'profissional' ? 'personal' : c.nome}` : ''}
-              </Link>
-            ))}
+            d.contextos.map((c) => {
+              const link = linkNovaFicha(c)
+              return link ? (
+                <Link key={`${c.tipo}:${c.id}`} para={link} className="btn btn-anilha btn-m">
+                  <PiPlus /> Ficha{d.contextos.length > 1 ? ` · ${c.tipo === 'profissional' ? 'personal' : c.nome}` : ''}
+                </Link>
+              ) : null
+            })}
         </div>
       </header>
       {topo}
@@ -165,7 +168,7 @@ export function AlunoDetalhe({
               return (
                 <li key={modalidade} className="cartao p-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    <Faixa cor={faixa?.cor ?? '#888'} graus={ultima?.graus ?? 0} largura={80} />
+                    <Faixa cor={faixa?.cor ?? '#888'} ponta={faixa?.ponta} graus={ultima?.graus ?? 0} largura={80} />
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">{nomeModalidade(modalidade)}</span>
                       <span className="block text-xs text-suave">
