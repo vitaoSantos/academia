@@ -1,11 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { PiArrowLeft, PiMagnifyingGlass } from 'react-icons/pi'
 import { Boneco, InfoExercicio } from '../components/ficha/VerExercicio'
-import { AppAluno } from '../components/layout/AppAluno'
-import { Rodape } from '../components/layout/Rodape'
-import { Topo } from '../components/layout/Topo'
+import { Moldura } from '../components/layout/Moldura'
 import { Link } from '../lib/rotas'
-import { useSessao } from '../lib/sessao'
 import { useTitulo } from '../lib/titulo'
 import { EQUIPAMENTOS, EXERCICIO, EXERCICIOS, GRUPOS, MUSCULOS, buscarExercicios, type Grupo } from '../shared/exercicios'
 import { textoReps } from '../shared/ficha'
@@ -15,18 +12,6 @@ import { textoReps } from '../shared/ficha'
 
 const ORDEM = Object.keys(GRUPOS) as Grupo[]
 const NIVEIS = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado' }
-
-function Moldura({ children }: { children: ReactNode }) {
-  const s = useSessao()
-  if (s.usuario) return <AppAluno largo>{children}</AppAluno>
-  return (
-    <div className="min-h-[100svh]">
-      <Topo />
-      <main className="margem mx-auto max-w-6xl py-8 pb-20">{children}</main>
-      <Rodape />
-    </div>
-  )
-}
 
 export default function Exercicios({ id }: { id?: string }) {
   const ex = id ? EXERCICIO[id] : undefined

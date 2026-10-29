@@ -376,7 +376,9 @@ function Descanso({ ate, total, agora, mudar, proximo }: { ate: number; total: n
 
 function Anotar({ aberta, valor, aoFechar, aoSalvar }: { aberta: boolean; valor: string; aoFechar: () => void; aoSalvar: (v: string) => void }) {
   const [texto, setTexto] = useState(valor)
-  useEffect(() => setTexto(valor), [valor, aberta])
+  useEffect(() => {
+    setTexto(valor)
+  }, [valor, aberta])
   return (
     <Folha aberta={aberta} aoFechar={aoFechar} titulo="Anotação">
       <div className="p-6">

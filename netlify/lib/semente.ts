@@ -50,7 +50,7 @@ import type { LinhaUnidade } from '../../src/shared/respostas.ts'
 // Os telefones são de mentira (DDD 00). As datas andam com o relógio: a demonstração é recriada
 // quando a versão muda ou quando passa de 3 dias.
 
-export const VERSAO_DEMO = 3
+export const VERSAO_DEMO = 4
 const VALIDADE = 3 * 86_400_000
 
 export const CONTAS_DEMO = {
@@ -784,7 +784,8 @@ export async function semear() {
     const local = dados.local
     const e = local ? porSlug.get(local.empresa) : undefined
     const u = e?.unidades.find((x) => x.id === local?.unidade)
-    const criadoEm = diasAtras(atras, hora)
+    // o post "de hoje" numa hora que ainda não chegou vai para ontem (nada no futuro)
+    const criadoEm = Date.parse(diasAtras(atras, hora)) > agora - 10 * 60_000 ? diasAtras(atras + 1, hora) : diasAtras(atras, hora)
     const post: Post = {
       id,
       autor: c.id,
@@ -1088,6 +1089,27 @@ export async function criarAlunoDeVisita(): Promise<ContaGuardada> {
   ])
   const anos = [new Date().getFullYear(), new Date().getFullYear() - 1].map(String)
   const treinosPorAno = await Promise.all(anos.map((a) => lerJSON<Treino[]>(CHAVES.treinosDo(ana.id, a), [])))
+  // as conversas da Ana, refeitas com a visita no lugar dela
+  const linhasDaAna = await lerJSON<LinhaConversa[]>(CHAVES.conversasDo(`conta:${ana.id}`), [])
+  const conversasDaAna = (await Promise.all(linhasDaAna.map((l) => lerJSON<Conversa | null>(CHAVES.conversa(l.id), null)))).filter((c): c is Conversa => !!c)
+  const visitaLado: Lado = { tipo: 'conta', id }
+  const ehAna = (l: Lado) => l.tipo === 'conta' && l.id === ana.id
+  const conversasDaVisita: Conversa[] = []
+  const linhasDaVisita: LinhaConversa[] = []
+  for (const c of conversasDaAna) {
+    const outro = c.lados.find((l) => !ehAna(l))
+    if (!outro) continue
+    const novoId = await idDaConversa(visitaLado, outro)
+    conversasDaVisita.push({
+      ...c,
+      id: novoId,
+      lados: [visitaLado, outro],
+      mensagens: c.mensagens.map((m) => (ehAna(m.lado) ? { ...m, de: id, lado: visitaLado } : m)),
+      lidas: { [chaveDoLado(visitaLado)]: c.atualizadaEm },
+    })
+    const linha = linhasDaAna.find((l) => l.id === c.id)!
+    linhasDaVisita.push({ ...linha, id: novoId })
+  }
   const novaFicha = (f: string) => `${f}v${sufixo}`.slice(0, 40)
   const fichasCompletas = await Promise.all(fichasLista.map((f) => lerJSON<Ficha | null>(CHAVES.ficha(f.id), null)))
   const conta: ContaGuardada = { ...ana, id, usuario, publico: false, demo: undefined, visita: true, criadaEm: new Date().toISOString(), consentimentos: { medidas: [PESSOAS.rafa.id] }, versao: 1 }
@@ -1103,6 +1125,8 @@ export async function criarAlunoDeVisita(): Promise<ContaGuardada> {
     [CHAVES.desafiosDo(id), desafios],
     ...fichasCompletas.filter((f): f is Ficha => !!f).map<Doc>((f) => [CHAVES.ficha(novaFicha(f.id)), { ...f, id: novaFicha(f.id), aluno: id }]),
     ...anos.map<Doc>((a, i) => [CHAVES.treinosDo(id, a), treinosPorAno[i].map((t) => ({ ...t, id: `${t.id}v${sufixo}`.slice(0, 40), conta: id, ficha: t.ficha ? novaFicha(t.ficha) : undefined, post: undefined }))]),
+    ...conversasDaVisita.map<Doc>((c) => [CHAVES.conversa(c.id), c]),
+    [CHAVES.conversasDo(`conta:${id}`), linhasDaVisita],
     [CHAVES.avisos(id), [{ id: 'av1', tipo: 'ficha', texto: 'Bem-vinda! Você está experimentando como a Ana, aluna da Força Total e do Rafael Moreira. O que você faz aqui só você vê.', link: '/app', em: new Date().toISOString() }]],
   ]
   await emParalelo(docs, ([chave, valor]) => blobs().setJSON(chave, valor), 24)

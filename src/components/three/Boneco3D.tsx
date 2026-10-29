@@ -47,16 +47,24 @@ export default function Boneco3D({ exercicio, cor, camera, velocidade = 1, pausa
     }
   }, [interativo])
 
-  useEffect(() => palco.current?.mostrar(exercicio, camera), [exercicio])
+  useEffect(() => {
+    palco.current?.mostrar(exercicio, camera)
+  }, [exercicio])
   useEffect(() => {
     if (camera) palco.current?.camera(camera)
   }, [camera])
-  useEffect(() => palco.current?.velocidade(velocidade), [velocidade])
+  useEffect(() => {
+    palco.current?.velocidade(velocidade)
+  }, [velocidade])
   useEffect(() => {
     if (pausado !== undefined) palco.current?.pausar(pausado)
   }, [pausado])
-  useEffect(() => palco.current?.musculos(musculos), [musculos])
-  useEffect(() => palco.current?.cor(cor), [cor])
+  useEffect(() => {
+    palco.current?.musculos(musculos)
+  }, [musculos])
+  useEffect(() => {
+    palco.current?.cor(cor)
+  }, [cor])
   useEffect(() => {
     if (instante !== null && instante !== undefined) palco.current?.instante(instante)
   }, [instante, exercicio])

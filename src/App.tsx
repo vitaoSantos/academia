@@ -36,6 +36,11 @@ const Desafio = lazy(() => import('./paginas/aluno/Desafio'))
 const Conta = lazy(() => import('./paginas/aluno/Conta'))
 const Avisos = lazy(() => import('./paginas/aluno/Avisos'))
 const Mais = lazy(() => import('./paginas/aluno/Mais'))
+const Rede = lazy(() => import('./paginas/rede/Rede'))
+const Post = lazy(() => import('./paginas/rede/Post'))
+const Pedidos = lazy(() => import('./paginas/rede/Pedidos'))
+const Mensagens = lazy(() => import('./paginas/mensagens/Mensagens'))
+const Conversa = lazy(() => import('./paginas/mensagens/Conversa'))
 
 function Carregando() {
   return (
@@ -69,6 +74,8 @@ function Tela() {
   else if (primeira === 'fichas') tela = !segunda ? <Fichas /> : segunda === 'nova' ? <MinhaFicha /> : terceira === 'editar' ? <MinhaFicha key={segunda} id={segunda} /> : <Ficha key={segunda} id={segunda} />
   else if (primeira === 'desafios') tela = segunda ? <Desafio key={segunda} id={segunda} /> : <Desafios />
   else if (primeira === 'exercicios') tela = <Exercicios key={segunda ?? ''} id={segunda} />
+  else if (primeira === 'rede') tela = !segunda ? <Rede /> : segunda === 'pedidos' ? <Pedidos /> : segunda === 'p' && terceira ? <Post key={terceira} id={terceira} /> : <NaoEncontrada />
+  else if (primeira === 'mensagens') tela = segunda ? <Conversa key={segunda} id={segunda} /> : <Mensagens />
   else if (primeira === 'lab') tela = <Lab inicial={segunda} />
   else if (primeira === 'explorar') tela = <Explorar />
   else if (caminho === '/entrar') tela = <Entrar />

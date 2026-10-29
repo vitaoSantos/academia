@@ -6,7 +6,9 @@ const texto = (n: number) => (Number.isFinite(n) ? String(n).replace('.', ',') :
 
 export function CampoNumero({ valor, aoMudar, passo = 1, min = 0, max = 999, rotulo, compacto = false }: { valor: number; aoMudar: (n: number) => void; passo?: number; min?: number; max?: number; rotulo: string; compacto?: boolean }) {
   const [digitado, setDigitado] = useState(texto(valor))
-  useEffect(() => setDigitado(texto(valor)), [valor])
+  useEffect(() => {
+    setDigitado(texto(valor))
+  }, [valor])
   const limitar = (n: number) => Math.min(max, Math.max(min, Math.round(n * 100) / 100))
   const somar = (d: number) => aoMudar(limitar((Number.isFinite(valor) ? valor : 0) + d))
   const botao = `grid shrink-0 place-items-center rounded-xl bg-sup-2 text-suave hover:bg-sup-3 hover:text-texto active:scale-95 ${compacto ? 'size-8' : 'size-10'}`
