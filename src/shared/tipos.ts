@@ -365,7 +365,7 @@ export type PedidoExperimental = {
 // ---------- Rede ----------
 
 export type TipoPost = 'treino' | 'aula' | 'conquista' | 'foto'
-export type Marcado = { tipo: 'empresa' | 'profissional' | 'pessoa'; id: string; nome: string }
+export type Marcado = { tipo: 'empresa' | 'profissional' | 'pessoa'; id: string; nome: string; link?: string } // o link vem na leitura
 
 export type Post = {
   id: string

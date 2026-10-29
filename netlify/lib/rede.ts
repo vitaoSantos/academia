@@ -130,12 +130,33 @@ export function podeVer(linha: Pick<LinhaFeed, 'autor' | 'privado' | 'visita' | 
 }
 
 export async function verPosts(posts: Post[], quem: string | null): Promise<PostVisto[]> {
-  const autores = await resumos(posts.map((p) => p.autor))
+  const marcados = posts.flatMap((p) => p.marcados)
+  const idsPro = [...new Set(marcados.filter((m) => m.tipo === 'profissional').map((m) => m.id))]
+  const [autores, pessoas, pros] = await Promise.all([
+    resumos(posts.map((p) => p.autor)),
+    resumos(marcados.filter((m) => m.tipo === 'pessoa').map((m) => m.id)),
+    Promise.all(idsPro.map((id) => lerProfissional(id))),
+  ])
+  // o link de cada marcação: a página da academia, a do profissional (se pública) ou o perfil
+  const slugs = new Map(pros.filter((p) => p?.publico).map((p) => [p!.id, p!.slug]))
+  const link = (m: Marcado) => (m.tipo === 'empresa' ? `/${m.id}` : m.tipo === 'profissional' ? (slugs.has(m.id) ? `/${slugs.get(m.id)}` : undefined) : pessoas.has(m.id) ? `/u/${pessoas.get(m.id)!.usuario}` : undefined)
   return posts
     .filter((p) => autores.has(p.autor))
     .map((p) => {
       const { denuncias: _d, ...resto } = p
-      return { ...resto, denuncias: [], fortes: p.fortes.slice(0, 3), autorResumo: autores.get(p.autor)!, dei: !!quem && p.fortes.includes(quem), meu: p.autor === quem, totalFortes: p.fortes.length }
+      return {
+        ...resto,
+        marcados: p.marcados.map((m) => {
+          const l = link(m)
+          return l ? { ...m, link: l } : m
+        }),
+        denuncias: [],
+        fortes: p.fortes.slice(0, 3),
+        autorResumo: autores.get(p.autor)!,
+        dei: !!quem && p.fortes.includes(quem),
+        meu: p.autor === quem,
+        totalFortes: p.fortes.length,
+      }
     })
 }
 

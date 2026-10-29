@@ -43,7 +43,8 @@ export const dentro = (centro: Ponto, ponto: Ponto, raioKm: number) => distancia
 
 // "800 m", "8 km", "161 km"
 export function textoDistancia(km: number) {
-  if (km < 1) return `${Math.max(100, Math.round((km * 1000) / 100) * 100)} m`
+  const metros = Math.max(100, Math.round((km * 1000) / 100) * 100)
+  if (metros < 1000) return `${metros} m`
   if (km < 10) return `${km.toFixed(1).replace('.', ',').replace(',0', '')} km`
   return `${Math.round(km)} km`
 }

@@ -256,7 +256,7 @@
     background: var(--anilha);
     color: var(--anilha-texto);
     box-shadow:
-      0 14px 30px -16px rgb(245 197 24 / 0.75),
+      0 14px 30px -16px color-mix(in oklab, var(--anilha) 75%, transparent),
       inset 0 -2px 0 rgb(0 0 0 / 0.14);
   }
   .btn-anilha:hover:not(:disabled) {
@@ -395,5 +395,91 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Dentro da marca (a página e o app de uma academia ou de um personal), as cores da plataforma viram
+   as da marca: os mesmos botões, cartões e campos vestem o estilo, a cor e a fonte que ela escolheu */
+.com-marca {
+  --fundo: var(--m-fundo);
+  --sup: var(--m-sup);
+  --sup-2: var(--m-sup-2);
+  --sup-3: color-mix(in oklab, var(--m-sup-2) 84%, var(--m-texto));
+  --linha: var(--m-linha);
+  --linha-2: color-mix(in oklab, var(--m-texto) 20%, transparent);
+  --texto: var(--m-texto);
+  --suave: var(--m-suave);
+  --fraco: var(--m-suave);
+  --anilha: var(--m-destaque);
+  --anilha-2: color-mix(in oklab, var(--m-destaque) 88%, white);
+  --anilha-texto: var(--m-destaque-texto);
+  --anilha-legivel: var(--m-destaque-legivel);
+  --anilha-suave: var(--m-destaque-suave);
+  --vidro: color-mix(in oklab, var(--m-sup) 88%, transparent);
+  background: var(--fundo);
+  color: var(--texto);
+}
+.com-marca[data-esquema="claro"] {
+  color-scheme: light;
+}
+.com-marca[data-esquema="escuro"] {
+  color-scheme: dark;
+}
+.com-marca .titulo {
+  font-family: var(--m-fonte);
+  font-weight: var(--m-fonte-peso);
+  text-transform: var(--m-fonte-caixa);
+  letter-spacing: var(--m-fonte-espaco);
+}
+.com-marca .btn,
+.com-marca .campo,
+.com-marca .cartao {
+  border-radius: var(--m-raio-botao);
+}
+.com-marca .cartao {
+  border-radius: var(--m-raio);
+}
+
+/* O mapa (MapLibre) sem o contorno do foco, com a atribuição discreta; no escuro, só o desenho do
+   mapa escurece (os pinos ficam com as cores das marcas) */
+.maplibregl-canvas:focus-visible {
+  outline: none;
+}
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.mapa-escuro .maplibregl-canvas {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.5) brightness(0.9);
+}
+
+.esqueleto {
+  background: linear-gradient(90deg, rgb(127 127 127 / 0.08), rgb(127 127 127 / 0.18), rgb(127 127 127 / 0.08));
+  background-size: 200% 100%;
+  animation: esqueleto 1.4s ease-in-out infinite;
+}
+
+@keyframes esqueleto {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }

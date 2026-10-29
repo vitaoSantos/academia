@@ -7,7 +7,7 @@ export const RESERVADOS = new Set([
   'favicon', 'ficha', 'fichas', 'historico', 'img', 'inicio', 'lab', 'login', 'logout', 'manifest', 'mapa', 'medidas',
   'mensagens', 'midia', 'netlify', 'novo', 'p', 'painel', 'perfil', 'personal', 'planos', 'privacidade', 'pro', 'rede',
   'robots', 'sair', 'sitemap', 'sobre', 'static', 'suporte', 'termos', 'treinar', 'treino', 'treinos', 'turma', 'u',
-  'www',
+  'www', 'evolucao', 'mais', 'comecar', 'academias', 'personais', 'modalidades', 'conversas', 'busca', 'configuracoes',
 ])
 
 export const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/
