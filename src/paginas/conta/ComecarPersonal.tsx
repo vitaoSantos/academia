@@ -16,11 +16,11 @@ import { nomeCidade } from '../../shared/geo'
 import { ORDEM_TEMAS } from '../../shared/temas'
 import { SENHA_MINIMA } from '../../shared/texto'
 import type { Cidade, PresetVisual } from '../../shared/tipos'
+import { ESPECIALIDADES } from '../../shared/modalidades'
 
 // O perfil profissional: o personal (atende por conta própria, 30 dias grátis) ou o professor (dá
 // aula nas academias que o convidam). Uma conta só para os dois.
 
-const SUGESTOES = ['Hipertrofia', 'Emagrecimento', 'Força', 'Idosos', 'Gestantes', 'Reabilitação', 'Corrida', 'Funcional', 'Mobilidade', 'Performance']
 
 export default function ComecarPersonal() {
   const { busca } = useEndereco()
@@ -147,7 +147,7 @@ export default function ComecarPersonal() {
                   }}
                 />
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {SUGESTOES.filter((x) => !especialidades.includes(x)).map((x) => (
+                  {ESPECIALIDADES.filter((x) => !especialidades.includes(x)).map((x) => (
                     <button key={x} type="button" className="chip text-suave" onClick={() => addEsp(x)}>
                       + {x}
                     </button>

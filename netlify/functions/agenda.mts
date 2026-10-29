@@ -6,10 +6,11 @@ import { exigirConta } from '../lib/auth.ts'
 import { lerConta } from '../lib/contas.ts'
 import { falhar, json, lerCorpo, limitar, rotas } from '../lib/http.ts'
 import { exigirProfissional, lerProfissional, mudarProfissional } from '../lib/profissionais.ts'
-import { apagarFixa, criarFixa, lerFixas, livresNoDia, marcar, mudarSessao, proximasDoAluno, semana } from '../lib/sessoes.ts'
+import { apagarFixa, criarFixa, lerFixas, livresNoDia, marcar, mudarSessao, professoresComAgenda, proximasDoAluno, semana } from '../lib/sessoes.ts'
 
 // A agenda entre o personal e o aluno.
-// GET ?livres&pro=<id>&data · ?semana[&de] (o personal) · ?minhas (o aluno)
+// GET ?livres&pro=<id>&data · ?semana[&de] (o profissional) · ?minhas (o aluno: as sessões e os
+//     professores da academia dele que abriram a agenda)
 // POST { acao }: marcar, mudar (cancelar, feita, faltou), fixa, fixa-apagar, config (o personal)
 
 export default rotas({
@@ -29,7 +30,7 @@ export default rotas({
       const r: SemanaDaAgenda = { dias: await semana(profissional.id, inicio), fixas: await lerFixas(profissional.id), agenda: profissional.agenda }
       return json(r)
     }
-    if (u.has('minhas')) return json({ sessoes: await proximasDoAluno(conta.id) })
+    if (u.has('minhas')) return json({ sessoes: await proximasDoAluno(conta.id), professores: await professoresComAgenda(conta.id) })
     return falhar(400, 'O que você quer ver?')
   },
   POST: async (req) => {

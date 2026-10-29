@@ -6,6 +6,7 @@ import type { Profissional, Sessao, SessaoFixa } from '../../src/shared/tipos.ts
 import type { ContaGuardada } from './auth.ts'
 import { avisarSemFalhar } from './avisos.ts'
 import { lerConta } from './contas.ts'
+import { lerEmpresa } from './empresas.ts'
 import { falhar } from './http.ts'
 import { atualizar, CHAVES, lerJSON, novoId } from './store.ts'
 import { lerVinculos, vinculoAtivo } from './vinculos.ts'
@@ -15,6 +16,33 @@ import { lerVinculos, vinculoAtivo } from './vinculos.ts'
 // pego). As sessões fixas (seg/qua/sex 7h) entram em cada dia sem ocupar espaço até acontecer.
 
 export const lerDia = (pro: string, data: string) => lerJSON<Sessao[]>(CHAVES.agenda(pro, data), [])
+
+// Quem pode marcar com quem: o aluno do personal (vínculo ativo) e, quando a academia libera a agenda
+// dos professores, o aluno dela com os professores de lá
+export async function atendeOAluno(pro: Profissional, alunoId: string) {
+  const vinculos = await lerVinculos(alunoId)
+  if (vinculoAtivo(vinculos, { tipo: 'profissional', id: pro.id })) return true
+  const conta = await lerConta(pro.id)
+  for (const m of conta?.empresas ?? []) {
+    if (m.papel === 'recepcao' || !vinculoAtivo(vinculos, { tipo: 'empresa', id: m.slug })) continue
+    if ((await lerEmpresa(m.slug))?.agendaProfessores) return true
+  }
+  return false
+}
+
+// Os professores das academias do aluno que abriram a agenda (com a academia liberando)
+export async function professoresComAgenda(alunoId: string) {
+  const lista: { id: string; nome: string; foto?: string; empresa: string; empresaNome: string }[] = []
+  for (const v of (await lerVinculos(alunoId)).filter((x) => x.tipo === 'empresa' && x.status === 'ativo')) {
+    const e = await lerEmpresa(v.id)
+    if (!e?.agendaProfessores) continue
+    for (const m of e.equipe.filter((x) => x.papel === 'professor' && x.id !== alunoId)) {
+      const p = await lerJSON<Profissional | null>(CHAVES.profissional(m.id), null)
+      if (p?.agenda.ativa && !lista.some((x) => x.id === p.id)) lista.push({ id: p.id, nome: p.nome, ...(p.foto ? { foto: p.foto } : {}), empresa: e.slug, empresaNome: e.nome })
+    }
+  }
+  return lista
+}
 export const lerFixas = (pro: string) => lerJSON<SessaoFixa[]>(CHAVES.fixas(pro), [])
 
 // As sessões do dia: as gravadas e as fixas daquele dia da semana (as fixas já canceladas ou
@@ -48,7 +76,7 @@ export async function marcar(quem: ContaGuardada, pro: Profissional, dados: { al
   if (!ehPro && !pro.agenda.alunoMarca) falhar(403, 'Combine o horário com o seu personal pelo chat.')
   const aluno = ehPro ? await lerConta(dados.aluno) : quem
   if (!aluno) return falhar(404, 'Aluno não encontrado.')
-  if (!vinculoAtivo(await lerVinculos(aluno.id), { tipo: 'profissional', id: pro.id })) falhar(403, ehPro ? 'Esta pessoa não é sua aluna.' : 'Você não é aluno deste personal.')
+  if (!(await atendeOAluno(pro, aluno.id))) falhar(403, ehPro ? 'Esta pessoa não é sua aluna.' : 'Você não é aluno deste profissional.')
   const agora = agoraNoFuso()
   const local = limpar(dados.local, 60) || pro.agenda.locais[0]
   const obs = limpar(dados.obs, 160)

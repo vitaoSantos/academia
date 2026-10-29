@@ -41,6 +41,13 @@ const Post = lazy(() => import('./paginas/rede/Post'))
 const Pedidos = lazy(() => import('./paginas/rede/Pedidos'))
 const Mensagens = lazy(() => import('./paginas/mensagens/Mensagens'))
 const Conversa = lazy(() => import('./paginas/mensagens/Conversa'))
+const ProHoje = lazy(() => import('./pro/Hoje'))
+const ProAlunos = lazy(() => import('./pro/Alunos'))
+const ProAluno = lazy(() => import('./pro/Aluno'))
+const ProFichas = lazy(() => import('./pro/Fichas'))
+const ProEditarFicha = lazy(() => import('./pro/EditarFicha'))
+const ProAgenda = lazy(() => import('./pro/Agenda'))
+const ProPerfil = lazy(() => import('./pro/Perfil'))
 
 function Carregando() {
   return (
@@ -48,6 +55,18 @@ function Carregando() {
       <Girando className="text-2xl text-fraco" />
     </div>
   )
+}
+
+// O painel do profissional: /pro, /pro/alunos[/id], /pro/fichas[/nova|/id], /pro/modelos/novo|id,
+// /pro/agenda e /pro/perfil
+function telaDoPro(segunda?: string, terceira?: string): ReactNode {
+  if (!segunda) return <ProHoje />
+  if (segunda === 'alunos') return terceira ? <ProAluno key={terceira} id={terceira} /> : <ProAlunos />
+  if (segunda === 'fichas') return !terceira ? <ProFichas /> : terceira === 'nova' ? <ProEditarFicha key={location.search} /> : <ProEditarFicha key={terceira} id={terceira} />
+  if (segunda === 'modelos' && terceira) return <ProEditarFicha key={`m${terceira}`} modelo={terceira} />
+  if (segunda === 'agenda') return <ProAgenda />
+  if (segunda === 'perfil') return <ProPerfil />
+  return <NaoEncontrada />
 }
 
 function Tela() {
@@ -76,6 +95,7 @@ function Tela() {
   else if (primeira === 'exercicios') tela = <Exercicios key={segunda ?? ''} id={segunda} />
   else if (primeira === 'rede') tela = !segunda ? <Rede /> : segunda === 'pedidos' ? <Pedidos /> : segunda === 'p' && terceira ? <Post key={terceira} id={terceira} /> : <NaoEncontrada />
   else if (primeira === 'mensagens') tela = segunda ? <Conversa key={segunda} id={segunda} /> : <Mensagens />
+  else if (primeira === 'pro') tela = telaDoPro(segunda, terceira)
   else if (primeira === 'lab') tela = <Lab inicial={segunda} />
   else if (primeira === 'explorar') tela = <Explorar />
   else if (caminho === '/entrar') tela = <Entrar />

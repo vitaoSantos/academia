@@ -94,7 +94,7 @@ export function Montador({
   const semanas = Math.round(diasEntre(f.inicio, f.previsao) / 7)
 
   return (
-    <div className="space-y-5 pb-28">
+    <div className="space-y-5 pb-24">
       {topo}
       {/* o cabeçalho */}
       <section className="cartao space-y-4 p-5" aria-label="A ficha">
@@ -294,7 +294,8 @@ export function Montador({
       )}
 
       {/* salvar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-linha bg-fundo/95 backdrop-blur-md lg:sticky lg:-mx-4 lg:rounded-2xl lg:border" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* no celular, logo acima da barra de navegação do app; no computador, presa embaixo da coluna */}
+      <div className="fixed inset-x-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom,0px))] z-40 border-t border-linha bg-fundo/95 backdrop-blur-md lg:sticky lg:bottom-0 lg:-mx-4 lg:rounded-2xl lg:border">
         <div className="mx-auto flex max-w-3xl gap-2 px-4 py-3">
           {rascunho && (
             <button type="button" className="btn btn-sup btn-m" disabled={!!salvando} onClick={() => salvar(false)}>

@@ -27,10 +27,14 @@ export default function Agenda() {
   useTitulo('Agenda')
   const s = useSessao()
   const avisar = useAviso()
-  const minhas = useDados(s.usuario ? `agenda:${s.usuario.id}` : null, () => agenda.minhas().then((r) => r.sessoes))
+  const dados = useDados(s.usuario ? `agenda:${s.usuario.id}` : null, () => agenda.minhas())
+  const minhas = { ...dados, dados: dados.dados?.sessoes }
+  const professores = dados.dados?.professores ?? []
   const vinculos = useVinculos()
   const personais = (vinculos.dados ?? []).filter((v) => v.tipo === 'profissional' && v.status === 'ativo')
   const [marcando, setMarcando] = useState<string | null>(null)
+  // com quem dá para marcar: o personal e os professores da academia que abriram a agenda
+  const comQuem = [...personais.map((p) => ({ id: p.id, nome: p.nome, sub: 'Personal' })), ...professores.map((p) => ({ id: p.id, nome: p.nome, sub: `Professor da ${p.empresaNome}` }))]
   const hoje = agoraNoFuso().data
   const proximas = (minhas.dados ?? []).filter((x) => x.data >= hoje && x.status === 'marcada')
   const antes = (minhas.dados ?? []).filter((x) => !(x.data >= hoje && x.status === 'marcada')).reverse()
@@ -41,7 +45,7 @@ export default function Agenda() {
       await agenda.mudar({ pro: x.profissional, id: x.id, data: x.data, status: 'cancelada' })
       avisar('Desmarcada. O seu personal foi avisado.')
       esquecer('inicio:')
-      await minhas.recarregar()
+      await dados.recarregar()
     } catch (e) {
       avisar(mensagemDeErro(e), 'erro')
     }
@@ -59,7 +63,11 @@ export default function Agenda() {
   return (
     <AppAluno titulo="Agenda">
       {!minhas.dados ? (
-        minhas.erro ? <Erro mensagem={mensagemDeErro(minhas.erro)} aoTentar={minhas.recarregar} /> : <Carregando />
+        dados.erro ? (
+          <Erro mensagem={mensagemDeErro(dados.erro)} aoTentar={dados.recarregar} />
+        ) : (
+          <Carregando />
+        )
       ) : (
         <div className="space-y-7">
           <section aria-labelledby="proximas">
@@ -92,12 +100,13 @@ export default function Agenda() {
             )}
           </section>
 
-          {personais.length > 0 ? (
-            personais.map((p) => (
+          {comQuem.length > 0 ? (
+            comQuem.map((p) => (
               <section key={p.id} className="cartao p-5" aria-labelledby={`marcar-${p.id}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 id={`marcar-${p.id}`} className="font-bold">
                     Marcar com {primeiroNome(p.nome)}
+                    <span className="block text-xs font-normal text-suave">{p.sub}</span>
                   </h2>
                   <button type="button" className="btn btn-fantasma btn-p" onClick={() => conversar(p.id)}>
                     <PiChatCircleDots /> Conversar
@@ -109,7 +118,7 @@ export default function Agenda() {
                       pro={{ id: p.id, nome: p.nome }}
                       aoMarcar={() => {
                         esquecer('inicio:')
-                        void minhas.recarregar()
+                        void dados.recarregar()
                       }}
                     />
                   </div>
@@ -122,7 +131,7 @@ export default function Agenda() {
             ))
           ) : (
             <div className="cartao">
-              <Vazio titulo="Sem personal por aqui" texto="Quando você treinar com um personal da Turma, marca as sessões nesta tela, nos horários livres dele.">
+              <Vazio titulo="Sem agenda por aqui" texto="Quando você treinar com um personal da Turma (ou a sua academia abrir a agenda dos professores), marca os horários nesta tela.">
                 <Link para="/explorar?tipo=personais" className="btn btn-sup btn-m">
                   Achar um personal
                 </Link>

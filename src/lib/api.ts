@@ -29,8 +29,44 @@ import type {
   UltimaVez,
   VinculoComMarca,
   SemanaDaAgenda,
+  AlunosDoPainel,
+  AlunoParaOProfissional,
+  AvaliacaoVista,
+  FichaDoPainel,
+  HojeDoProfissional,
+  VisaoDaEmpresa,
 } from '../shared/respostas'
-import type { Cidade, ConfigAgenda, ContextoFicha, Divisao, Ficha, Marcado, ModeloFicha, ExercicioProprio, PedidoExperimental, PessoaResumo, Sessao, SessaoFixa, Ponto, Visual, Circunferencia, Avaliacao, TipoEmpresa, PresetVisual } from '../shared/tipos'
+import type {
+  AlunoDoPainel,
+  Aula,
+  Avaliacao,
+  Cidade,
+  Circunferencia,
+  ConfigAgenda,
+  ContextoFicha,
+  Convite,
+  Divisao,
+  Empresa,
+  Evento,
+  ExercicioProprio,
+  Ficha,
+  LocalAtendimento,
+  Marcado,
+  ModeloFicha,
+  PapelEmpresa,
+  PedidoExperimental,
+  PessoaResumo,
+  Ponto,
+  PresetVisual,
+  Profissional,
+  Reserva,
+  Sessao,
+  SessaoFixa,
+  SistemaGraduacao,
+  TipoEmpresa,
+  Unidade,
+  Visual,
+} from '../shared/tipos'
 
 // As chamadas às Netlify Functions (uma função por assunto; GET lê, POST com `acao` muda)
 
@@ -241,7 +277,7 @@ export type AgendaPublica = { duracao: number; alunoMarca: boolean; locais: stri
 export const agenda = {
   livres: (pro: string, data: string) => chamar<{ data: string; livres: string[]; agenda: AgendaPublica }>('agenda', { busca: { livres: true, pro, data } }),
   semana: (de?: string) => chamar<SemanaDaAgenda>('agenda', { busca: { semana: true, de } }),
-  minhas: () => chamar<{ sessoes: SessaoDoAluno[] }>('agenda', { busca: { minhas: true } }),
+  minhas: () => chamar<{ sessoes: SessaoDoAluno[]; professores: { id: string; nome: string; foto?: string; empresa: string; empresaNome: string }[] }>('agenda', { busca: { minhas: true } }),
   marcar: (d: { pro: string; data: string; inicio: string; aluno?: string; local?: string; obs?: string }) => post<{ sessao: Sessao }>('agenda', 'marcar', d),
   mudar: (d: { pro: string; id: string; data: string; status: 'cancelada' | 'feita' | 'faltou' }) => post<{ sessao: Sessao }>('agenda', 'mudar', d),
   fixa: (d: { aluno: string; dias: number[]; inicio: string; local?: string }) => post<{ fixa: SessaoFixa }>('agenda', 'fixa', d),
@@ -303,6 +339,65 @@ export const conversas = {
   contador: (como?: string) => chamar<{ naoLidas: number }>('conversa', { busca: { contador: true, como } }),
   abrir: (com: { tipo: 'conta' | 'empresa'; id: string }, como?: string) => post<{ id: string }>('conversa', 'abrir', { com, como }),
   enviar: (id: string, texto: string, como?: string) => post<{ ok: true }>('conversa', 'enviar', { id, texto, como }),
+}
+
+// ---------- O painel do profissional ----------
+
+export type AlunosDoProfissional = {
+  personal: AlunoDoPainel[]
+  academias: { slug: string; nome: string; papel: string; alunos: AlunoDoPainel[] }[]
+  limite: number | null
+  nivel: 'premium' | 'basico' | 'nenhum'
+}
+export type PerfilDoProfissional = { profissional: Profissional; nivel: 'premium' | 'basico' | 'nenhum'; avaliacoes: AvaliacaoVista[]; academias: { slug: string; nome: string }[] }
+export type MudancaDeVisual = { visual: Partial<Visual>; logo?: string; semLogo?: boolean; capa?: string; semCapa?: boolean; fonteArquivo?: string; fonteNome?: string; semFonte?: boolean }
+
+export const pro = {
+  hoje: () => chamar<HojeDoProfissional>('pro', { busca: { aba: 'hoje' } }),
+  alunos: () => chamar<AlunosDoProfissional>('pro', { busca: { aba: 'alunos' } }),
+  aluno: (id: string) => chamar<AlunoParaOProfissional>('pro', { busca: { aba: 'aluno', id } }),
+  fichas: () => chamar<{ fichas: FichaDoPainel[] }>('pro', { busca: { aba: 'fichas' } }),
+  perfil: () => chamar<PerfilDoProfissional>('pro', { busca: { aba: 'perfil' } }),
+  aparencia: (m: MudancaDeVisual) => post<{ profissional: Profissional }>('pro', 'aparencia', m),
+  locais: (locais: LocalAtendimento[]) => post<{ profissional: Profissional }>('pro', 'locais', { locais }),
+  publico: (publico: boolean) => post<{ profissional: Profissional }>('pro', 'publico', { publico }),
+  plano: (plano: 'basico' | 'premium') => post<{ profissional: Profissional }>('pro', 'plano', { plano }),
+  convite: (d: { nome?: string; contato?: string }) => post<{ convite: Convite }>('pro', 'convite', d),
+  responderAluno: (id: string, op: 'aceitar' | 'recusar' | 'remover') => post<{ personal: AlunoDoPainel[] }>('pro', 'aluno', { id, op }),
+}
+
+// ---------- O painel da academia ----------
+
+export type EmpresaDoPainel = { empresa: Empresa; papel: PapelEmpresa; nivel: 'premium' | 'basico' | 'nenhum'; limite: number | null }
+export type AulaNoPainel = { aula: Aula; data: string; reservas: Reserva[]; espera: Reserva[]; presentes: string[]; papel: PapelEmpresa }
+
+const doPainel = <T>(slug: string, acao: string, dados: object = {}) => chamar<T>('painel', { corpo: { slug, acao, ...dados } })
+
+export const painel = {
+  empresa: (slug: string) => chamar<EmpresaDoPainel>('painel', { busca: { slug, aba: 'empresa' } }),
+  visao: (slug: string) => chamar<VisaoDaEmpresa>('painel', { busca: { slug, aba: 'visao' } }),
+  alunos: (slug: string) => chamar<AlunosDoPainel>('painel', { busca: { slug, aba: 'alunos' } }),
+  aluno: (slug: string, id: string) => chamar<AlunoParaOProfissional>('painel', { busca: { slug, aba: 'aluno', id } }),
+  fichas: (slug: string) => chamar<{ fichas: FichaDoPainel[] }>('painel', { busca: { slug, aba: 'fichas' } }),
+  contatos: (slug: string) => chamar<{ pedidos: PedidoExperimental[] }>('painel', { busca: { slug, aba: 'contatos' } }),
+  avaliacoes: (slug: string) => chamar<{ avaliacoes: AvaliacaoVista[] }>('painel', { busca: { slug, aba: 'avaliacoes' } }),
+  aula: (slug: string, id: string, data: string) => chamar<AulaNoPainel>('painel', { busca: { slug, aba: 'aula', id, data } }),
+  perfil: (slug: string, d: { nome: string; descricao?: string; instagram?: string; site?: string }) => doPainel<{ empresa: Empresa }>(slug, 'perfil', d),
+  aparencia: (slug: string, m: MudancaDeVisual) => doPainel<{ empresa: Empresa }>(slug, 'aparencia', m),
+  unidade: (slug: string, unidade: Partial<Unidade>) => doPainel<{ empresa: Empresa }>(slug, 'unidade', { unidade }),
+  removerUnidade: (slug: string, id: string) => doPainel<{ empresa: Empresa }>(slug, 'unidade-remover', { id }),
+  modalidade: (slug: string, id: string, d: { ligada?: boolean; descricao?: string; inclusa?: boolean; precoDesde?: number; niveis?: string[]; publicos?: string[]; graduacao?: SistemaGraduacao }) => doPainel<{ empresa: Empresa }>(slug, 'modalidade', { id, ...d }),
+  salvarAula: (slug: string, aula: Partial<Aula> & { lugarMarcado?: boolean }) => doPainel<{ empresa: Empresa }>(slug, 'aula', { aula }),
+  removerAula: (slug: string, id: string) => doPainel<{ empresa: Empresa }>(slug, 'aula-remover', { id }),
+  evento: (slug: string, evento: Partial<Evento>) => doPainel<{ empresa: Empresa }>(slug, 'evento', { evento }),
+  removerEvento: (slug: string, id: string) => doPainel<{ empresa: Empresa }>(slug, 'evento-remover', { id }),
+  agendaProfessores: (slug: string, ligada: boolean) => doPainel<{ empresa: Empresa }>(slug, 'agenda-professores', { ligada }),
+  plano: (slug: string, plano: 'basico' | 'premium') => doPainel<{ empresa: Empresa }>(slug, 'plano', { plano }),
+  equipe: (slug: string, id: string, papel: PapelEmpresa, unidades?: string[]) => doPainel<{ empresa: Empresa }>(slug, 'equipe', { id, papel, unidades }),
+  removerEquipe: (slug: string, id: string) => doPainel<{ empresa: Empresa }>(slug, 'equipe-remover', { id }),
+  convite: (slug: string, d: { tipo: 'aluno' | 'professor'; unidade?: string; nome?: string; contato?: string }) => doPainel<{ convite: Convite }>(slug, 'convite', d),
+  alunoOp: (slug: string, id: string, op: 'aprovar' | 'recusar' | 'remover' | 'unidade' | 'responsavel' | 'modalidades', extra: { unidade?: string; responsavel?: string; modalidades?: string[] } = {}) => doPainel<AlunosDoPainel>(slug, 'aluno', { id, op, ...extra }),
+  graduar: (slug: string, aluno: string, modalidade: string, d: { faixa?: string; graus?: number; kids?: boolean } = {}) => doPainel<AlunosDoPainel>(slug, 'graduar', { aluno, modalidade, ...d }),
 }
 
 export const desafios = {

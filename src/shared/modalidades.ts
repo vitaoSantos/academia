@@ -134,3 +134,6 @@ export const SUGERIDAS: Record<string, string[]> = {
   danca: ['ballet', 'jazz', 'danca-de-salao', 'forro', 'hip-hop', 'zumba'],
   aquatica: ['natacao', 'hidroginastica', 'musculacao'],
 }
+
+// As especialidades sugeridas no perfil do profissional (ele escreve outras se quiser)
+export const ESPECIALIDADES = ['Hipertrofia', 'Emagrecimento', 'Força', 'Idosos', 'Gestantes', 'Reabilitação', 'Corrida', 'Funcional', 'Mobilidade', 'Performance']

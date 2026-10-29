@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PiChatCircleDots, PiDotsThree, PiFlag, PiGear, PiLockSimple, PiMapPin, PiProhibit, PiUserCheck, PiUserPlus } from 'react-icons/pi'
 import { Rodape } from '../../components/layout/Rodape'
 import { Topo } from '../../components/layout/Topo'
+import { Faixa } from '../../components/perfil/Faixa'
 import { Denunciar } from '../../components/rede/Denunciar'
 import { MARCA } from '../../data/marca'
 import { ListaDePosts } from '../../components/rede/ListaDePosts'
@@ -266,19 +267,6 @@ function Conteudo({ d, recarregar, definir }: { d: PerfilPessoa; recarregar: () 
       <Denunciar aberta={denunciando} aoFechar={() => setDenunciando(false)} alvo={{ tipo: 'perfil', id: p.id }} />
       <ListaPessoas usuario={p.usuario} tipo={lista} aoFechar={() => setLista(null)} />
     </div>
-  )
-}
-
-// A faixa desenhada (a cor e os graus na ponta preta)
-export function Faixa({ cor, graus = 0, largura = 64 }: { cor: string; graus?: number; largura?: number }) {
-  return (
-    <span className="relative inline-block h-3.5 shrink-0 rounded-sm border border-linha" style={{ width: largura, background: cor }} aria-hidden>
-      <span className="absolute inset-y-0 right-2 flex w-5 items-center gap-0.5 rounded-[1px] bg-[#141414] px-0.5">
-        {Array.from({ length: Math.min(graus, 6) }, (_, i) => (
-          <span key={i} className="h-full w-0.5 bg-white" />
-        ))}
-      </span>
-    </span>
   )
 }
 
